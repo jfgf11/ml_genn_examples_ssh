@@ -103,6 +103,7 @@ if __name__ == '__main__':
     if args.reuse_tf_model:
         tf_model = models.load_model('vgg13_tf_model')
     else:
+        checkpoint_path = "training_1/cp.ckpt"
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                  save_weights_only=True,
                                                  verbose=1,
@@ -117,7 +118,8 @@ if __name__ == '__main__':
            epochs=200,
            steps_per_epoch=steps_per_epoch,
            batch_size=128)
-
+        # The model weights (that are considered the best) are loaded into the model.
+        tf_model.load_weights(checkpoint_path)
         models.save_model(tf_model, 'vgg13_tf_model', save_format='h5')
 
     tf_eval_start_time = perf_counter()
