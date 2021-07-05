@@ -6,8 +6,7 @@ import numpy as np
 from six import iteritems
 from time import perf_counter
 from sklearn.preprocessing import OneHotEncoder
-
-
+from tensorflow.keras import (models)
 
 if __name__ == '__main__':
     args = parse_arguments('Simple CNN classifier model')
