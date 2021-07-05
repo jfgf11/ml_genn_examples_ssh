@@ -20,7 +20,7 @@ if __name__ == '__main__':
     np.random.seed(2345)
 
     # Retrieve and normalise CIFAR-10 dataset
-    (x_train, y_train), (x_test, y_test) = datasets.cifar10.load_data()
+    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
 
     # apparently the OneHotEncoder improves the measurements.... it did...
     encoder = OneHotEncoder()
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     # Create, train and evaluate TensorFlow model
     # Create L2 regularizer
-    regularizer = tf.keras.regularizers.l2(0.00001) #0.0001
+    regularizer = tf.keras.regularizers.l2(0.00001)
     kernel_init = 'he_uniform'
 
     # Creating the model
