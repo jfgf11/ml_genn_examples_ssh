@@ -48,7 +48,7 @@ if __name__ == '__main__':
                                                            zoom_range=0.2,
                                                            shear_range=0.1)
     
-    data_gen.fit(train_images)
+    data_gen.fit(x_train)
 
     # Create, train and evaluate TensorFlow model
     # Create L2 regularizer
@@ -111,9 +111,9 @@ if __name__ == '__main__':
 
         tf_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         tf_model.summary()
-        steps_per_epoch = train_labels.shape[0] // 128
-        tf_model.fit(data_gen.flow(train_images, train_labels, batch_size=128),
-           validation_data=(test_images, test_labels), 
+        steps_per_epoch = y_train.shape[0] // 128
+        tf_model.fit(data_gen.flow(x_train, y_train, batch_size=128),
+           validation_data=(x_test, y_test), 
            epochs=200,
            steps_per_epoch=steps_per_epoch,
            batch_size=128)
