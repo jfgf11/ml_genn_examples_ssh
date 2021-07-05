@@ -117,7 +117,8 @@ if __name__ == '__main__':
            validation_data=(x_test, y_test), 
            epochs=200,
            steps_per_epoch=steps_per_epoch,
-           batch_size=128)
+           batch_size=128,
+           callbacks=[cp_callback])
         # The model weights (that are considered the best) are loaded into the model.
         tf_model.load_weights(checkpoint_path)
         models.save_model(tf_model, 'vgg13_tf_model', save_format='h5')
