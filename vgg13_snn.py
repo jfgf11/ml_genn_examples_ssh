@@ -29,10 +29,10 @@ if __name__ == '__main__':
     y_test = encoder.transform(y_test).toarray()
 
 
-    x_train = x_train[:args.n_train_samples] / 255.0
-    y_train = y_train[:args.n_train_samples, 0]
+    x_train = x_train / 255.0
+    #y_train = y_train[:args.n_train_samples, 0]
 
-    x_test = x_test[:args.n_test_samples] / 255.0
+    x_test = x_test / 255.0
     x_norm = x_train[np.random.choice(x_train.shape[0], args.n_norm_samples, replace=False)]
 
 
