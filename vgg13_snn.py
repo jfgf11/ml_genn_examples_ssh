@@ -29,25 +29,14 @@ if __name__ == '__main__':
 
 
     x_train = x_train / 255.0
-    #y_train = y_train[:args.n_train_samples, 0]
-
     x_test = x_test / 255.0
-    x_norm = x_train[np.random.choice(x_train.shape[0], args.n_norm_samples, replace=False)]
+    x_norm = x_train[np.random.choice(x_train.shape[0], 256, replace=False)]
 
 
     # Check input size
     if x_train.shape[1] < 32 or x_train.shape[2] < 32:
         raise ValueError('input must be at least 32x32')
 
-
-    data_gen = tf.keras.preprocessing.image.ImageDataGenerator(horizontal_flip=True,
-                                                           width_shift_range=0.05,
-                                                           height_shift_range=0.05,
-                                                           rotation_range=20,
-                                                           zoom_range=0.2,
-                                                           shear_range=0.1)
-    
-    data_gen.fit(x_train)
 
     # Create, train and evaluate TensorFlow model
     # Create L2 regularizer
@@ -102,6 +91,15 @@ if __name__ == '__main__':
     if args.reuse_tf_model:
         tf_model = models.load_model('vgg13_tf_model')
     else:
+
+        data_gen = tf.keras.preprocessing.image.ImageDataGenerator(horizontal_flip=True,
+                                                           width_shift_range=0.05,
+                                                           height_shift_range=0.05,
+                                                           rotation_range=20,
+                                                           zoom_range=0.2,
+                                                           shear_range=0.1)
+        data_gen.fit(train_images)
+
         checkpoint_path = "training_1/cp.ckpt"
         cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                  save_weights_only=True,
@@ -127,19 +125,17 @@ if __name__ == '__main__':
     print("TF evaluation:%f" % (perf_counter() - tf_eval_start_time))
 
     # Create, suitable converter to convert TF model to ML GeNN
-    converter = (FewSpike(K=8, norm_data=[x_norm]) if args.few_spike 
-                 else RateBased(input_type=args.input_type, 
-                                norm_data=[x_norm],
-                                norm_method=args.norm_method,
-                                spike_norm_time=500))
+    converter = RateBased(input_type='poisson',
+                        norm_data=[x_norm], norm_method='data-norm', 
+                        spike_norm_time=2500)
 
     # Convert and compile ML GeNN model
     mlg_model = Model.convert_tf_model(
-        tf_model, converter=converter, connectivity_type=args.connectivity_type,
-        dt=args.dt, batch_size=args.batch_size, rng_seed=args.rng_seed, 
-        kernel_profiling=args.kernel_profiling)
+        tf_model, converter=converter, connectivity_type='procedural',
+        dt=1.0, batch_size=1, rng_seed=0, 
+        kernel_profiling=True)
     
-    time = 8 if args.few_spike else 500
+    time = 2500
     mlg_eval_start_time = perf_counter()
     acc, spk_i, spk_t = mlg_model.evaluate([x_test], [y_test], time, save_samples=args.save_samples)
     print("MLG evaluation:%f" % (perf_counter() - mlg_eval_start_time))
@@ -150,7 +146,7 @@ if __name__ == '__main__':
             print("\t%s: %fs" % (n, t))
 
     # Report ML GeNN model results
-    print('Accuracy of SimpleCNN GeNN model: {}%'.format(acc[0]))
+    print('Accuracy of VGG13 GeNN model: {}%'.format(acc[0]))
     if args.plot:
         neurons = [l.neurons.nrn for l in mlg_model.layers]
         raster_plot(spk_i, spk_t, neurons, time=time)

@@ -5,8 +5,8 @@ struct MergedNeuronUpdateGroup0
  {
     unsigned int* spkCnt;
     unsigned int* spk;
+    curandState* rng;
     scalar* input;
-    scalar* Vmem;
     unsigned int numNeurons;
     
 }
@@ -15,25 +15,11 @@ struct MergedNeuronUpdateGroup1
  {
     unsigned int* spkCnt;
     unsigned int* spk;
-    scalar* Fx;
     scalar* Vmem;
+    unsigned int* nSpk;
     float* inSynInSyn0;
     unsigned int numNeurons;
-    scalar alpha;
-    scalar upstreamAlpha;
-    scalar scale;
-    scalar upstreamScale;
-    
-}
-;
-struct MergedNeuronUpdateGroup2
- {
-    unsigned int* spkCnt;
-    unsigned int* spk;
-    scalar* Fx;
-    scalar* Vmem;
-    float* inSynInSyn0;
-    unsigned int numNeurons;
+    scalar Vthr;
     
 }
 ;
@@ -60,19 +46,14 @@ void pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(unsigned int idx, unsigned i
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronSpikeQueueUpdateGroup1, &group, sizeof(MergedNeuronSpikeQueueUpdateGroup1), idx * sizeof(MergedNeuronSpikeQueueUpdateGroup1)));
 }
 __device__ __constant__ MergedNeuronUpdateGroup0 d_mergedNeuronUpdateGroup0[1];
-void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* input, scalar* Vmem, unsigned int numNeurons) {
-    MergedNeuronUpdateGroup0 group = {spkCnt, spk, input, Vmem, numNeurons, };
+void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons) {
+    MergedNeuronUpdateGroup0 group = {spkCnt, spk, rng, input, numNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup0, &group, sizeof(MergedNeuronUpdateGroup0), idx * sizeof(MergedNeuronUpdateGroup0)));
 }
-__device__ __constant__ MergedNeuronUpdateGroup1 d_mergedNeuronUpdateGroup1[12];
-void pushMergedNeuronUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Fx, scalar* Vmem, float* inSynInSyn0, unsigned int numNeurons, scalar alpha, scalar upstreamAlpha, scalar scale, scalar upstreamScale) {
-    MergedNeuronUpdateGroup1 group = {spkCnt, spk, Fx, Vmem, inSynInSyn0, numNeurons, alpha, upstreamAlpha, scale, upstreamScale, };
+__device__ __constant__ MergedNeuronUpdateGroup1 d_mergedNeuronUpdateGroup1[13];
+void pushMergedNeuronUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, unsigned int numNeurons, scalar Vthr) {
+    MergedNeuronUpdateGroup1 group = {spkCnt, spk, Vmem, nSpk, inSynInSyn0, numNeurons, Vthr, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &group, sizeof(MergedNeuronUpdateGroup1), idx * sizeof(MergedNeuronUpdateGroup1)));
-}
-__device__ __constant__ MergedNeuronUpdateGroup2 d_mergedNeuronUpdateGroup2[1];
-void pushMergedNeuronUpdateGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Fx, scalar* Vmem, float* inSynInSyn0, unsigned int numNeurons) {
-    MergedNeuronUpdateGroup2 group = {spkCnt, spk, Fx, Vmem, inSynInSyn0, numNeurons, };
-    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup2, &group, sizeof(MergedNeuronUpdateGroup2), idx * sizeof(MergedNeuronUpdateGroup2)));
 }
 // ------------------------------------------------------------------------
 // merged extra global parameter functions
@@ -81,8 +62,7 @@ void pushMergedNeuronUpdateGroup2ToDevice(unsigned int idx, unsigned int* spkCnt
 // merged extra global parameter functions
 // ------------------------------------------------------------------------
 __device__ __constant__ unsigned int d_mergedNeuronUpdateGroupStartID0[] = {0, };
-__device__ __constant__ unsigned int d_mergedNeuronUpdateGroupStartID1[] = {3072, 68608, 101376, 134144, 150528, 166912, 175104, 183296, 185344, 187392, 191488, 191552, };
-__device__ __constant__ unsigned int d_mergedNeuronUpdateGroupStartID2[] = {195648, };
+__device__ __constant__ unsigned int d_mergedNeuronUpdateGroupStartID1[] = {3072, 68608, 101376, 134144, 150528, 166912, 175104, 183296, 185344, 187392, 252928, 257024, 257088, };
 
 extern "C" __global__ void neuronSpikeQueueUpdateKernel() {
     const unsigned int id = 32 * blockIdx.x + threadIdx.x;
@@ -114,44 +94,19 @@ extern "C" __global__ void updateNeuronsKernel(float t)
         
         if(lid < group->numNeurons) {
             const scalar linput = group->input[lid];
-            scalar lVmem = group->Vmem[lid];
             
             // test whether spike condition was fulfilled previously
             // calculate membrane potential
             
-            // Convert K to integer
-            const int halfK = (int)(1.00000000000000000e+01f) / 2;
-            
-            // Get timestep within presentation
-            const int pipeTimestep = (int)(t / DT);
-            
-            // If this is the first timestep, apply input
-            if(pipeTimestep == 0) {
-                lVmem = linput;
-            }
-            
-            // Split timestep into interleaved positive and negative
-            const int halfPipetimestep = pipeTimestep / 2;
-            const bool positive = (pipeTimestep % 2) == 0;
-            const scalar hT = (3.12500000000000000e-02f) * (1 << (halfK - (1 + halfPipetimestep)));
+            const bool spike = curand_uniform(&group->rng[lid]) >= exp(-fabs(linput) * DT);
             
             // test for and register a true spike
             if (
-            (positive && lVmem >= hT) || (!positive && lVmem < -hT)
+            linput > 0.0f && spike
             ) {
                 const unsigned int spkIdx = atomicAdd(&shSpkCount, 1);
                 shSpk[spkIdx] = lid;
-                // spike reset code
-                
-                if(positive) {
-                    lVmem -= hT;
-                }
-                else {
-                    lVmem += hT;
-                }
-                
             }
-            group->Vmem[lid] = lVmem;
         }
         __syncthreads();
         if(threadIdx.x == 0) {
@@ -166,9 +121,9 @@ extern "C" __global__ void updateNeuronsKernel(float t)
         }
     }
     // merged1
-    if(id >= 3072 && id < 195648) {
+    if(id >= 3072 && id < 261184) {
         unsigned int lo = 0;
-        unsigned int hi = 12;
+        unsigned int hi = 13;
         while(lo < hi)
          {
             const unsigned int mid = (lo + hi) / 2;
@@ -184,8 +139,8 @@ extern "C" __global__ void updateNeuronsKernel(float t)
         const unsigned int lid = id - groupStartID;
         
         if(lid < group->numNeurons) {
-            scalar lFx = group->Fx[lid];
             scalar lVmem = group->Vmem[lid];
+            unsigned int lnSpk = group->nSpk[lid];
             
             float Isyn = 0;
              {
@@ -198,110 +153,27 @@ extern "C" __global__ void updateNeuronsKernel(float t)
             // test whether spike condition was fulfilled previously
             // calculate membrane potential
             
-            // Convert K to integer
-            const int kInt = (int)(1.00000000000000000e+01f);
-            
-            // Get timestep within presentation
-            const int pipeTimestep = (int)(t / DT);
-            
-            // Calculate magic constants. For RelU hT=h=T
-            // **NOTE** d uses last timestep as that was when spike was SENT
-            const scalar hT = group->scale * (1 << (kInt - (1 + pipeTimestep)));
-            const scalar d = group->upstreamScale * (1 << ((kInt - pipeTimestep) % kInt));
-            
-            // Accumulate input
-            // **NOTE** needs to be before applying input as spikes from LAST timestep must be processed
-            lFx += (Isyn * d);
-            
-            // If this is the first timestep, apply input
-            if(pipeTimestep == 0) {
-                lVmem = lFx;
-                lFx = 0.0f;
+            if (t == 0.0f) {
+                // Reset state at t = 0
+                lVmem = 0.0f;
+                lnSpk = 0;
             }
+            lVmem += Isyn * DT;
             
             // test for and register a true spike
             if (
-            lVmem >= hT
+            lVmem >= group->Vthr
             ) {
                 const unsigned int spkIdx = atomicAdd(&shSpkCount, 1);
                 shSpk[spkIdx] = lid;
                 // spike reset code
                 
-                lVmem -= hT;
+                lVmem = 0.0f;
+                lnSpk += 1;
                 
             }
-            group->Fx[lid] = lFx;
             group->Vmem[lid] = lVmem;
-        }
-        __syncthreads();
-        if(threadIdx.x == 0) {
-            if (shSpkCount > 0) {
-                shPosSpk = atomicAdd(&group->spkCnt[0], shSpkCount);
-            }
-        }
-        __syncthreads();
-        if(threadIdx.x < shSpkCount) {
-            const unsigned int n = shSpk[threadIdx.x];
-            group->spk[shPosSpk + threadIdx.x] = n;
-        }
-    }
-    // merged2
-    if(id >= 195648 && id < 261184) {
-        struct MergedNeuronUpdateGroup2 *group = &d_mergedNeuronUpdateGroup2[0]; 
-        const unsigned int lid = id - 195648;
-        
-        if(lid < group->numNeurons) {
-            scalar lFx = group->Fx[lid];
-            scalar lVmem = group->Vmem[lid];
-            
-            float Isyn = 0;
-             {
-                // pull inSyn values in a coalesced access
-                float linSyn = group->inSynInSyn0[lid];
-                Isyn += linSyn; linSyn = 0;
-                
-                group->inSynInSyn0[lid] = linSyn;
-            }
-            // test whether spike condition was fulfilled previously
-            // calculate membrane potential
-            
-            // Convert K to integer
-            const int kInt = (int)(1.00000000000000000e+01f);
-            
-            // Get timestep within presentation
-            const int pipeTimestep = (int)(t / DT);
-            
-            // Calculate magic constants. For RelU hT=h=T
-            const scalar hT = (2.92968750000000000e-03f) * (1 << (kInt - (1 + pipeTimestep)));
-            
-            // Split timestep into interleaved positive and negative
-            // **NOTE** sign is flipped compared to input model as we want sign of PREVIOUS timestep
-            const scalar dSign = ((pipeTimestep % 2) == 0) ? -1.0f : 1.0f;
-            const scalar d = dSign * (3.12500000000000000e-02f) * (1 << (((kInt - pipeTimestep) % kInt) / 2));
-            
-            // Accumulate input
-            // **NOTE** needs to be before applying input as spikes from LAST timestep must be processed
-            lFx += (Isyn * d);
-            
-            // If this is the first timestep, apply input
-            if(pipeTimestep == 0) {
-                lVmem = lFx;
-                lFx = 0.0f;
-            }
-            
-            // test for and register a true spike
-            if (
-            lVmem >= hT
-            ) {
-                const unsigned int spkIdx = atomicAdd(&shSpkCount, 1);
-                shSpk[spkIdx] = lid;
-                // spike reset code
-                
-                lVmem -= hT;
-                
-            }
-            group->Fx[lid] = lFx;
-            group->Vmem[lid] = lVmem;
+            group->nSpk[lid] = lnSpk;
         }
         __syncthreads();
         if(threadIdx.x == 0) {
@@ -317,6 +189,19 @@ extern "C" __global__ void updateNeuronsKernel(float t)
     }
 }
 void updateNeurons(float t) {
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_1_nrn, sizeof(Vthrconv2d_1_nrn), (sizeof(MergedNeuronUpdateGroup1) * (0)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_2_nrn, sizeof(Vthrconv2d_2_nrn), (sizeof(MergedNeuronUpdateGroup1) * (1)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_3_nrn, sizeof(Vthrconv2d_3_nrn), (sizeof(MergedNeuronUpdateGroup1) * (2)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_4_nrn, sizeof(Vthrconv2d_4_nrn), (sizeof(MergedNeuronUpdateGroup1) * (3)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_5_nrn, sizeof(Vthrconv2d_5_nrn), (sizeof(MergedNeuronUpdateGroup1) * (4)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_6_nrn, sizeof(Vthrconv2d_6_nrn), (sizeof(MergedNeuronUpdateGroup1) * (5)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_7_nrn, sizeof(Vthrconv2d_7_nrn), (sizeof(MergedNeuronUpdateGroup1) * (6)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_8_nrn, sizeof(Vthrconv2d_8_nrn), (sizeof(MergedNeuronUpdateGroup1) * (7)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_9_nrn, sizeof(Vthrconv2d_9_nrn), (sizeof(MergedNeuronUpdateGroup1) * (8)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrconv2d_nrn, sizeof(Vthrconv2d_nrn), (sizeof(MergedNeuronUpdateGroup1) * (9)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrdense_1_nrn, sizeof(Vthrdense_1_nrn), (sizeof(MergedNeuronUpdateGroup1) * (10)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrdense_2_nrn, sizeof(Vthrdense_2_nrn), (sizeof(MergedNeuronUpdateGroup1) * (11)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup1, &Vthrdense_nrn, sizeof(Vthrdense_nrn), (sizeof(MergedNeuronUpdateGroup1) * (12)) + offsetof(MergedNeuronUpdateGroup1, Vthr)));
      {
         const dim3 threads(32, 1);
         const dim3 grid(1, 1);
