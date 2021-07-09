@@ -150,9 +150,10 @@ unsigned int* glbSpkCntinput_nrn;
 unsigned int* d_glbSpkCntinput_nrn;
 unsigned int* glbSpkinput_nrn;
 unsigned int* d_glbSpkinput_nrn;
-curandState* d_rnginput_nrn;
 scalar* inputinput_nrn;
 scalar* d_inputinput_nrn;
+scalar* Vmeminput_nrn;
+scalar* d_Vmeminput_nrn;
 
 // ------------------------------------------------------------------------
 // custom update variables
@@ -926,8 +927,19 @@ void pushCurrentinputinput_nrnToDevice(bool uninitialisedOnly) {
     CHECK_CUDA_ERRORS(cudaMemcpy(d_inputinput_nrn, inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
 }
 
+void pushVmeminput_nrnToDevice(bool uninitialisedOnly) {
+    if(!uninitialisedOnly) {
+        CHECK_CUDA_ERRORS(cudaMemcpy(d_Vmeminput_nrn, Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
+    }
+}
+
+void pushCurrentVmeminput_nrnToDevice(bool uninitialisedOnly) {
+    CHECK_CUDA_ERRORS(cudaMemcpy(d_Vmeminput_nrn, Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
+}
+
 void pushinput_nrnStateToDevice(bool uninitialisedOnly) {
     pushinputinput_nrnToDevice(uninitialisedOnly);
+    pushVmeminput_nrnToDevice(uninitialisedOnly);
 }
 
 void pushinSynconv2d_1_to_conv2d_2_synToDevice(bool uninitialisedOnly) {
@@ -1495,8 +1507,17 @@ void pullCurrentinputinput_nrnFromDevice() {
     CHECK_CUDA_ERRORS(cudaMemcpy(inputinput_nrn, d_inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
 }
 
+void pullVmeminput_nrnFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(Vmeminput_nrn, d_Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
+}
+
+void pullCurrentVmeminput_nrnFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(Vmeminput_nrn, d_Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
+}
+
 void pullinput_nrnStateFromDevice() {
     pullinputinput_nrnFromDevice();
+    pullVmeminput_nrnFromDevice();
 }
 
 void pullinSynconv2d_1_to_conv2d_2_synFromDevice() {
@@ -1837,6 +1858,10 @@ scalar* getCurrentinputinput_nrn(unsigned int batch) {
     return inputinput_nrn;
 }
 
+scalar* getCurrentVmeminput_nrn(unsigned int batch) {
+    return Vmeminput_nrn;
+}
+
 
 void copyStateToDevice(bool uninitialisedOnly) {
     pushconv2d_1_nrnStateToDevice(uninitialisedOnly);
@@ -2051,9 +2076,10 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkCntinput_nrn, 1 * sizeof(unsigned int)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkinput_nrn, 3072 * sizeof(unsigned int), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkinput_nrn, 3072 * sizeof(unsigned int)));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_rnginput_nrn, 3072 * sizeof(curandState)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&inputinput_nrn, 3072 * sizeof(scalar), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_inputinput_nrn, 3072 * sizeof(scalar)));
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&Vmeminput_nrn, 3072 * sizeof(scalar), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_Vmeminput_nrn, 3072 * sizeof(scalar)));
     
     // ------------------------------------------------------------------------
     // custom update variables
@@ -2101,7 +2127,7 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaHostAlloc(&gdense_to_dense_1_syn, 16777216 * sizeof(scalar), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_gdense_to_dense_1_syn, 16777216 * sizeof(scalar)));
     
-    pushMergedNeuronInitGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_rnginput_nrn, d_inputinput_nrn, 3072);
+    pushMergedNeuronInitGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_inputinput_nrn, d_Vmeminput_nrn, 3072);
     pushMergedNeuronInitGroup1ToDevice(0, d_glbSpkCntconv2d_1_nrn, d_glbSpkconv2d_1_nrn, d_Vmemconv2d_1_nrn, d_nSpkconv2d_1_nrn, d_inSynconv2d_to_conv2d_1_syn, 65536);
     pushMergedNeuronInitGroup1ToDevice(1, d_glbSpkCntconv2d_2_nrn, d_glbSpkconv2d_2_nrn, d_Vmemconv2d_2_nrn, d_nSpkconv2d_2_nrn, d_inSynconv2d_1_to_conv2d_2_syn, 32768);
     pushMergedNeuronInitGroup1ToDevice(2, d_glbSpkCntconv2d_3_nrn, d_glbSpkconv2d_3_nrn, d_Vmemconv2d_3_nrn, d_nSpkconv2d_3_nrn, d_inSynconv2d_2_to_conv2d_3_syn, 32768);
@@ -2115,7 +2141,7 @@ void allocateMem() {
     pushMergedNeuronInitGroup1ToDevice(10, d_glbSpkCntdense_1_nrn, d_glbSpkdense_1_nrn, d_Vmemdense_1_nrn, d_nSpkdense_1_nrn, d_inSyndense_to_dense_1_syn, 4096);
     pushMergedNeuronInitGroup1ToDevice(11, d_glbSpkCntdense_2_nrn, d_glbSpkdense_2_nrn, d_Vmemdense_2_nrn, d_nSpkdense_2_nrn, d_inSyndense_1_to_dense_2_syn, 10);
     pushMergedNeuronInitGroup1ToDevice(12, d_glbSpkCntdense_nrn, d_glbSpkdense_nrn, d_Vmemdense_nrn, d_nSpkdense_nrn, d_inSynconv2d_9_to_dense_syn, 4096);
-    pushMergedNeuronUpdateGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_rnginput_nrn, d_inputinput_nrn, 3072);
+    pushMergedNeuronUpdateGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_inputinput_nrn, d_Vmeminput_nrn, 3072);
     pushMergedNeuronUpdateGroup1ToDevice(0, d_glbSpkCntconv2d_1_nrn, d_glbSpkconv2d_1_nrn, d_Vmemconv2d_1_nrn, d_nSpkconv2d_1_nrn, d_inSynconv2d_to_conv2d_1_syn, 65536, Vthrconv2d_1_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(1, d_glbSpkCntconv2d_2_nrn, d_glbSpkconv2d_2_nrn, d_Vmemconv2d_2_nrn, d_nSpkconv2d_2_nrn, d_inSynconv2d_1_to_conv2d_2_syn, 32768, Vthrconv2d_2_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(2, d_glbSpkCntconv2d_3_nrn, d_glbSpkconv2d_3_nrn, d_Vmemconv2d_3_nrn, d_nSpkconv2d_3_nrn, d_inSynconv2d_2_to_conv2d_3_syn, 32768, Vthrconv2d_3_nrn);
@@ -2284,9 +2310,10 @@ void freeMem() {
     CHECK_CUDA_ERRORS(cudaFree(d_glbSpkCntinput_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkinput_nrn));
     CHECK_CUDA_ERRORS(cudaFree(d_glbSpkinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFree(d_rnginput_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(inputinput_nrn));
     CHECK_CUDA_ERRORS(cudaFree(d_inputinput_nrn));
+    CHECK_CUDA_ERRORS(cudaFreeHost(Vmeminput_nrn));
+    CHECK_CUDA_ERRORS(cudaFree(d_Vmeminput_nrn));
     
     // ------------------------------------------------------------------------
     // custom update variables

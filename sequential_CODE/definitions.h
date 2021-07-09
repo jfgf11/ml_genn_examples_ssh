@@ -222,6 +222,8 @@ EXPORT_VAR unsigned int* glbSpkinput_nrn;
 EXPORT_VAR unsigned int* d_glbSpkinput_nrn;
 EXPORT_VAR scalar* inputinput_nrn;
 EXPORT_VAR scalar* d_inputinput_nrn;
+EXPORT_VAR scalar* Vmeminput_nrn;
+EXPORT_VAR scalar* d_Vmeminput_nrn;
 
 // ------------------------------------------------------------------------
 // custom update variables
@@ -536,6 +538,11 @@ EXPORT_FUNC void pullinputinput_nrnFromDevice();
 EXPORT_FUNC void pushCurrentinputinput_nrnToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullCurrentinputinput_nrnFromDevice();
 EXPORT_FUNC scalar* getCurrentinputinput_nrn(unsigned int batch = 0); 
+EXPORT_FUNC void pushVmeminput_nrnToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullVmeminput_nrnFromDevice();
+EXPORT_FUNC void pushCurrentVmeminput_nrnToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullCurrentVmeminput_nrnFromDevice();
+EXPORT_FUNC scalar* getCurrentVmeminput_nrn(unsigned int batch = 0); 
 EXPORT_FUNC void pushinput_nrnStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullinput_nrnStateFromDevice();
 EXPORT_FUNC void allocatekernelgconv2d_1_to_conv2d_2_syn(unsigned int count);

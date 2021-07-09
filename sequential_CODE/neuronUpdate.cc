@@ -5,8 +5,8 @@ struct MergedNeuronUpdateGroup0
  {
     unsigned int* spkCnt;
     unsigned int* spk;
-    curandState* rng;
     scalar* input;
+    scalar* Vmem;
     unsigned int numNeurons;
     
 }
@@ -46,8 +46,8 @@ void pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(unsigned int idx, unsigned i
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronSpikeQueueUpdateGroup1, &group, sizeof(MergedNeuronSpikeQueueUpdateGroup1), idx * sizeof(MergedNeuronSpikeQueueUpdateGroup1)));
 }
 __device__ __constant__ MergedNeuronUpdateGroup0 d_mergedNeuronUpdateGroup0[1];
-void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons) {
-    MergedNeuronUpdateGroup0 group = {spkCnt, spk, rng, input, numNeurons, };
+void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* input, scalar* Vmem, unsigned int numNeurons) {
+    MergedNeuronUpdateGroup0 group = {spkCnt, spk, input, Vmem, numNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup0, &group, sizeof(MergedNeuronUpdateGroup0), idx * sizeof(MergedNeuronUpdateGroup0)));
 }
 __device__ __constant__ MergedNeuronUpdateGroup1 d_mergedNeuronUpdateGroup1[13];
@@ -94,19 +94,29 @@ extern "C" __global__ void updateNeuronsKernel(float t)
         
         if(lid < group->numNeurons) {
             const scalar linput = group->input[lid];
+            scalar lVmem = group->Vmem[lid];
             
             // test whether spike condition was fulfilled previously
             // calculate membrane potential
             
-            const bool spike = curand_uniform(&group->rng[lid]) >= exp(-fabs(linput) * DT);
+            if (t == 0.0f) {
+                // Reset state at t = 0
+                lVmem = 0.0f;
+            }
+            lVmem += linput * DT;
             
             // test for and register a true spike
             if (
-            linput > 0.0f && spike
+            lVmem >= 1.0f
             ) {
                 const unsigned int spkIdx = atomicAdd(&shSpkCount, 1);
                 shSpk[spkIdx] = lid;
+                // spike reset code
+                
+                lVmem = 0.0f;
+                
             }
+            group->Vmem[lid] = lVmem;
         }
         __syncthreads();
         if(threadIdx.x == 0) {
