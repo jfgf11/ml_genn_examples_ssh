@@ -102,7 +102,7 @@ void pushMergedPresynapticUpdate3kernelgToDevice(unsigned int idx, scalar* value
 __device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID0[] = {0, 64, };
 __device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID1[] = {4160, 69696, 102464, 118848, };
 __device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID2[] = {127040, };
-__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID3[] = {131136, 163904, 180288, 188480, 190528, 256064, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID3[] = {131136, 163904, 180288, 188480, 190528, 193600, };
 extern "C" __global__ void updatePresynapticKernel(float t)
  {
     const unsigned int id = 64 * blockIdx.x + threadIdx.x; 

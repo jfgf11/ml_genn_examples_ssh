@@ -110,6 +110,13 @@ scalar* d_Vmemconv2d_9_nrn;
 unsigned int* nSpkconv2d_9_nrn;
 unsigned int* d_nSpkconv2d_9_nrn;
 scalar Vthrconv2d_9_nrn;
+unsigned int* glbSpkCntconv2d_input_nrn;
+unsigned int* d_glbSpkCntconv2d_input_nrn;
+unsigned int* glbSpkconv2d_input_nrn;
+unsigned int* d_glbSpkconv2d_input_nrn;
+curandState* d_rngconv2d_input_nrn;
+scalar* inputconv2d_input_nrn;
+scalar* d_inputconv2d_input_nrn;
 unsigned int* glbSpkCntconv2d_nrn;
 unsigned int* d_glbSpkCntconv2d_nrn;
 unsigned int* glbSpkconv2d_nrn;
@@ -146,14 +153,6 @@ scalar* d_Vmemdense_nrn;
 unsigned int* nSpkdense_nrn;
 unsigned int* d_nSpkdense_nrn;
 scalar Vthrdense_nrn;
-unsigned int* glbSpkCntinput_nrn;
-unsigned int* d_glbSpkCntinput_nrn;
-unsigned int* glbSpkinput_nrn;
-unsigned int* d_glbSpkinput_nrn;
-scalar* inputinput_nrn;
-scalar* d_inputinput_nrn;
-scalar* Vmeminput_nrn;
-scalar* d_Vmeminput_nrn;
 
 // ------------------------------------------------------------------------
 // custom update variables
@@ -180,8 +179,8 @@ float* inSynconv2d_7_to_conv2d_8_syn;
 float* d_inSynconv2d_7_to_conv2d_8_syn;
 float* inSynconv2d_8_to_conv2d_9_syn;
 float* d_inSynconv2d_8_to_conv2d_9_syn;
-float* inSyninput_to_conv2d_syn;
-float* d_inSyninput_to_conv2d_syn;
+float* inSynconv2d_input_to_conv2d_syn;
+float* d_inSynconv2d_input_to_conv2d_syn;
 float* inSyndense_to_dense_1_syn;
 float* d_inSyndense_to_dense_1_syn;
 float* inSyndense_1_to_dense_2_syn;
@@ -214,14 +213,14 @@ scalar* kernelgconv2d_8_to_conv2d_9_syn;
 scalar* d_kernelgconv2d_8_to_conv2d_9_syn;
 scalar* weightsgconv2d_9_to_dense_syn;
 scalar* d_weightsgconv2d_9_to_dense_syn;
+scalar* kernelgconv2d_input_to_conv2d_syn;
+scalar* d_kernelgconv2d_input_to_conv2d_syn;
 scalar* kernelgconv2d_to_conv2d_1_syn;
 scalar* d_kernelgconv2d_to_conv2d_1_syn;
 scalar* gdense_1_to_dense_2_syn;
 scalar* d_gdense_1_to_dense_2_syn;
 scalar* gdense_to_dense_1_syn;
 scalar* d_gdense_to_dense_1_syn;
-scalar* kernelginput_to_conv2d_syn;
-scalar* d_kernelginput_to_conv2d_syn;
 
 }  // extern "C"
 // ------------------------------------------------------------------------
@@ -362,10 +361,25 @@ void pushweightsgconv2d_9_to_dense_synToDevice(unsigned int count) {
 void pullweightsgconv2d_9_to_dense_synFromDevice(unsigned int count) {
     CHECK_CUDA_ERRORS(cudaMemcpy(weightsgconv2d_9_to_dense_syn, d_weightsgconv2d_9_to_dense_syn, count * sizeof(scalar), cudaMemcpyDeviceToHost));
 }
+void allocatekernelgconv2d_input_to_conv2d_syn(unsigned int count) {
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&kernelgconv2d_input_to_conv2d_syn, count * sizeof(scalar), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_kernelgconv2d_input_to_conv2d_syn, count * sizeof(scalar)));
+    pushMergedPresynapticUpdate3kernelgToDevice(4, d_kernelgconv2d_input_to_conv2d_syn);
+}
+void freekernelgconv2d_input_to_conv2d_syn() {
+    CHECK_CUDA_ERRORS(cudaFreeHost(kernelgconv2d_input_to_conv2d_syn));
+    CHECK_CUDA_ERRORS(cudaFree(d_kernelgconv2d_input_to_conv2d_syn));
+}
+void pushkernelgconv2d_input_to_conv2d_synToDevice(unsigned int count) {
+    CHECK_CUDA_ERRORS(cudaMemcpy(d_kernelgconv2d_input_to_conv2d_syn, kernelgconv2d_input_to_conv2d_syn, count * sizeof(scalar), cudaMemcpyHostToDevice));
+}
+void pullkernelgconv2d_input_to_conv2d_synFromDevice(unsigned int count) {
+    CHECK_CUDA_ERRORS(cudaMemcpy(kernelgconv2d_input_to_conv2d_syn, d_kernelgconv2d_input_to_conv2d_syn, count * sizeof(scalar), cudaMemcpyDeviceToHost));
+}
 void allocatekernelgconv2d_to_conv2d_1_syn(unsigned int count) {
     CHECK_CUDA_ERRORS(cudaHostAlloc(&kernelgconv2d_to_conv2d_1_syn, count * sizeof(scalar), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_kernelgconv2d_to_conv2d_1_syn, count * sizeof(scalar)));
-    pushMergedPresynapticUpdate3kernelgToDevice(4, d_kernelgconv2d_to_conv2d_1_syn);
+    pushMergedPresynapticUpdate3kernelgToDevice(5, d_kernelgconv2d_to_conv2d_1_syn);
 }
 void freekernelgconv2d_to_conv2d_1_syn() {
     CHECK_CUDA_ERRORS(cudaFreeHost(kernelgconv2d_to_conv2d_1_syn));
@@ -376,21 +390,6 @@ void pushkernelgconv2d_to_conv2d_1_synToDevice(unsigned int count) {
 }
 void pullkernelgconv2d_to_conv2d_1_synFromDevice(unsigned int count) {
     CHECK_CUDA_ERRORS(cudaMemcpy(kernelgconv2d_to_conv2d_1_syn, d_kernelgconv2d_to_conv2d_1_syn, count * sizeof(scalar), cudaMemcpyDeviceToHost));
-}
-void allocatekernelginput_to_conv2d_syn(unsigned int count) {
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&kernelginput_to_conv2d_syn, count * sizeof(scalar), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_kernelginput_to_conv2d_syn, count * sizeof(scalar)));
-    pushMergedPresynapticUpdate3kernelgToDevice(5, d_kernelginput_to_conv2d_syn);
-}
-void freekernelginput_to_conv2d_syn() {
-    CHECK_CUDA_ERRORS(cudaFreeHost(kernelginput_to_conv2d_syn));
-    CHECK_CUDA_ERRORS(cudaFree(d_kernelginput_to_conv2d_syn));
-}
-void pushkernelginput_to_conv2d_synToDevice(unsigned int count) {
-    CHECK_CUDA_ERRORS(cudaMemcpy(d_kernelginput_to_conv2d_syn, kernelginput_to_conv2d_syn, count * sizeof(scalar), cudaMemcpyHostToDevice));
-}
-void pullkernelginput_to_conv2d_synFromDevice(unsigned int count) {
-    CHECK_CUDA_ERRORS(cudaMemcpy(kernelginput_to_conv2d_syn, d_kernelginput_to_conv2d_syn, count * sizeof(scalar), cudaMemcpyDeviceToHost));
 }
 
 // ------------------------------------------------------------------------
@@ -747,6 +746,34 @@ void pushconv2d_9_nrnStateToDevice(bool uninitialisedOnly) {
     pushnSpkconv2d_9_nrnToDevice(uninitialisedOnly);
 }
 
+void pushconv2d_input_nrnSpikesToDevice(bool uninitialisedOnly) {
+    if(!uninitialisedOnly) {
+        CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkCntconv2d_input_nrn, glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int), cudaMemcpyHostToDevice));
+    }
+    if(!uninitialisedOnly) {
+        CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkconv2d_input_nrn, glbSpkconv2d_input_nrn, 3072 * sizeof(unsigned int), cudaMemcpyHostToDevice));
+    }
+}
+
+void pushconv2d_input_nrnCurrentSpikesToDevice(bool uninitialisedOnly) {
+    CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkCntconv2d_input_nrn, glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int), cudaMemcpyHostToDevice));
+    CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkconv2d_input_nrn, glbSpkconv2d_input_nrn, glbSpkCntconv2d_input_nrn[0] * sizeof(unsigned int), cudaMemcpyHostToDevice));
+}
+
+void pushinputconv2d_input_nrnToDevice(bool uninitialisedOnly) {
+    if(!uninitialisedOnly) {
+        CHECK_CUDA_ERRORS(cudaMemcpy(d_inputconv2d_input_nrn, inputconv2d_input_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
+    }
+}
+
+void pushCurrentinputconv2d_input_nrnToDevice(bool uninitialisedOnly) {
+    CHECK_CUDA_ERRORS(cudaMemcpy(d_inputconv2d_input_nrn, inputconv2d_input_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
+}
+
+void pushconv2d_input_nrnStateToDevice(bool uninitialisedOnly) {
+    pushinputconv2d_input_nrnToDevice(uninitialisedOnly);
+}
+
 void pushconv2d_nrnSpikesToDevice(bool uninitialisedOnly) {
     if(!uninitialisedOnly) {
         CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkCntconv2d_nrn, glbSpkCntconv2d_nrn, 1 * sizeof(unsigned int), cudaMemcpyHostToDevice));
@@ -903,45 +930,6 @@ void pushdense_nrnStateToDevice(bool uninitialisedOnly) {
     pushnSpkdense_nrnToDevice(uninitialisedOnly);
 }
 
-void pushinput_nrnSpikesToDevice(bool uninitialisedOnly) {
-    if(!uninitialisedOnly) {
-        CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkCntinput_nrn, glbSpkCntinput_nrn, 1 * sizeof(unsigned int), cudaMemcpyHostToDevice));
-    }
-    if(!uninitialisedOnly) {
-        CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkinput_nrn, glbSpkinput_nrn, 3072 * sizeof(unsigned int), cudaMemcpyHostToDevice));
-    }
-}
-
-void pushinput_nrnCurrentSpikesToDevice(bool uninitialisedOnly) {
-    CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkCntinput_nrn, glbSpkCntinput_nrn, 1 * sizeof(unsigned int), cudaMemcpyHostToDevice));
-    CHECK_CUDA_ERRORS(cudaMemcpy(d_glbSpkinput_nrn, glbSpkinput_nrn, glbSpkCntinput_nrn[0] * sizeof(unsigned int), cudaMemcpyHostToDevice));
-}
-
-void pushinputinput_nrnToDevice(bool uninitialisedOnly) {
-    if(!uninitialisedOnly) {
-        CHECK_CUDA_ERRORS(cudaMemcpy(d_inputinput_nrn, inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
-    }
-}
-
-void pushCurrentinputinput_nrnToDevice(bool uninitialisedOnly) {
-    CHECK_CUDA_ERRORS(cudaMemcpy(d_inputinput_nrn, inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
-}
-
-void pushVmeminput_nrnToDevice(bool uninitialisedOnly) {
-    if(!uninitialisedOnly) {
-        CHECK_CUDA_ERRORS(cudaMemcpy(d_Vmeminput_nrn, Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
-    }
-}
-
-void pushCurrentVmeminput_nrnToDevice(bool uninitialisedOnly) {
-    CHECK_CUDA_ERRORS(cudaMemcpy(d_Vmeminput_nrn, Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyHostToDevice));
-}
-
-void pushinput_nrnStateToDevice(bool uninitialisedOnly) {
-    pushinputinput_nrnToDevice(uninitialisedOnly);
-    pushVmeminput_nrnToDevice(uninitialisedOnly);
-}
-
 void pushinSynconv2d_1_to_conv2d_2_synToDevice(bool uninitialisedOnly) {
     if(!uninitialisedOnly) {
         CHECK_CUDA_ERRORS(cudaMemcpy(d_inSynconv2d_1_to_conv2d_2_syn, inSynconv2d_1_to_conv2d_2_syn, 32768 * sizeof(float), cudaMemcpyHostToDevice));
@@ -1032,6 +1020,16 @@ void pushconv2d_9_to_dense_synStateToDevice(bool uninitialisedOnly) {
     pushinSynconv2d_9_to_dense_synToDevice(uninitialisedOnly);
 }
 
+void pushinSynconv2d_input_to_conv2d_synToDevice(bool uninitialisedOnly) {
+    if(!uninitialisedOnly) {
+        CHECK_CUDA_ERRORS(cudaMemcpy(d_inSynconv2d_input_to_conv2d_syn, inSynconv2d_input_to_conv2d_syn, 65536 * sizeof(float), cudaMemcpyHostToDevice));
+    }
+}
+
+void pushconv2d_input_to_conv2d_synStateToDevice(bool uninitialisedOnly) {
+    pushinSynconv2d_input_to_conv2d_synToDevice(uninitialisedOnly);
+}
+
 void pushinSynconv2d_to_conv2d_1_synToDevice(bool uninitialisedOnly) {
     if(!uninitialisedOnly) {
         CHECK_CUDA_ERRORS(cudaMemcpy(d_inSynconv2d_to_conv2d_1_syn, inSynconv2d_to_conv2d_1_syn, 65536 * sizeof(float), cudaMemcpyHostToDevice));
@@ -1070,16 +1068,6 @@ void pushinSyndense_to_dense_1_synToDevice(bool uninitialisedOnly) {
 void pushdense_to_dense_1_synStateToDevice(bool uninitialisedOnly) {
     pushgdense_to_dense_1_synToDevice(uninitialisedOnly);
     pushinSyndense_to_dense_1_synToDevice(uninitialisedOnly);
-}
-
-void pushinSyninput_to_conv2d_synToDevice(bool uninitialisedOnly) {
-    if(!uninitialisedOnly) {
-        CHECK_CUDA_ERRORS(cudaMemcpy(d_inSyninput_to_conv2d_syn, inSyninput_to_conv2d_syn, 65536 * sizeof(float), cudaMemcpyHostToDevice));
-    }
-}
-
-void pushinput_to_conv2d_synStateToDevice(bool uninitialisedOnly) {
-    pushinSyninput_to_conv2d_synToDevice(uninitialisedOnly);
 }
 
 
@@ -1365,6 +1353,28 @@ void pullconv2d_9_nrnStateFromDevice() {
     pullnSpkconv2d_9_nrnFromDevice();
 }
 
+void pullconv2d_input_nrnSpikesFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkCntconv2d_input_nrn, d_glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkconv2d_input_nrn, d_glbSpkconv2d_input_nrn, 3072 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+}
+
+void pullconv2d_input_nrnCurrentSpikesFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkCntconv2d_input_nrn, d_glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkconv2d_input_nrn, d_glbSpkconv2d_input_nrn, glbSpkCntconv2d_input_nrn[0] * sizeof(unsigned int), cudaMemcpyDeviceToHost));
+}
+
+void pullinputconv2d_input_nrnFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(inputconv2d_input_nrn, d_inputconv2d_input_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
+}
+
+void pullCurrentinputconv2d_input_nrnFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(inputconv2d_input_nrn, d_inputconv2d_input_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
+}
+
+void pullconv2d_input_nrnStateFromDevice() {
+    pullinputconv2d_input_nrnFromDevice();
+}
+
 void pullconv2d_nrnSpikesFromDevice() {
     CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkCntconv2d_nrn, d_glbSpkCntconv2d_nrn, 1 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
     CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkconv2d_nrn, d_glbSpkconv2d_nrn, 65536 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
@@ -1489,37 +1499,6 @@ void pulldense_nrnStateFromDevice() {
     pullnSpkdense_nrnFromDevice();
 }
 
-void pullinput_nrnSpikesFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkCntinput_nrn, d_glbSpkCntinput_nrn, 1 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkinput_nrn, d_glbSpkinput_nrn, 3072 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-}
-
-void pullinput_nrnCurrentSpikesFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkCntinput_nrn, d_glbSpkCntinput_nrn, 1 * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-    CHECK_CUDA_ERRORS(cudaMemcpy(glbSpkinput_nrn, d_glbSpkinput_nrn, glbSpkCntinput_nrn[0] * sizeof(unsigned int), cudaMemcpyDeviceToHost));
-}
-
-void pullinputinput_nrnFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(inputinput_nrn, d_inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
-}
-
-void pullCurrentinputinput_nrnFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(inputinput_nrn, d_inputinput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
-}
-
-void pullVmeminput_nrnFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(Vmeminput_nrn, d_Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
-}
-
-void pullCurrentVmeminput_nrnFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(Vmeminput_nrn, d_Vmeminput_nrn, 3072 * sizeof(scalar), cudaMemcpyDeviceToHost));
-}
-
-void pullinput_nrnStateFromDevice() {
-    pullinputinput_nrnFromDevice();
-    pullVmeminput_nrnFromDevice();
-}
-
 void pullinSynconv2d_1_to_conv2d_2_synFromDevice() {
     CHECK_CUDA_ERRORS(cudaMemcpy(inSynconv2d_1_to_conv2d_2_syn, d_inSynconv2d_1_to_conv2d_2_syn, 32768 * sizeof(float), cudaMemcpyDeviceToHost));
 }
@@ -1592,6 +1571,14 @@ void pullconv2d_9_to_dense_synStateFromDevice() {
     pullinSynconv2d_9_to_dense_synFromDevice();
 }
 
+void pullinSynconv2d_input_to_conv2d_synFromDevice() {
+    CHECK_CUDA_ERRORS(cudaMemcpy(inSynconv2d_input_to_conv2d_syn, d_inSynconv2d_input_to_conv2d_syn, 65536 * sizeof(float), cudaMemcpyDeviceToHost));
+}
+
+void pullconv2d_input_to_conv2d_synStateFromDevice() {
+    pullinSynconv2d_input_to_conv2d_synFromDevice();
+}
+
 void pullinSynconv2d_to_conv2d_1_synFromDevice() {
     CHECK_CUDA_ERRORS(cudaMemcpy(inSynconv2d_to_conv2d_1_syn, d_inSynconv2d_to_conv2d_1_syn, 65536 * sizeof(float), cudaMemcpyDeviceToHost));
 }
@@ -1624,14 +1611,6 @@ void pullinSyndense_to_dense_1_synFromDevice() {
 void pulldense_to_dense_1_synStateFromDevice() {
     pullgdense_to_dense_1_synFromDevice();
     pullinSyndense_to_dense_1_synFromDevice();
-}
-
-void pullinSyninput_to_conv2d_synFromDevice() {
-    CHECK_CUDA_ERRORS(cudaMemcpy(inSyninput_to_conv2d_syn, d_inSyninput_to_conv2d_syn, 65536 * sizeof(float), cudaMemcpyDeviceToHost));
-}
-
-void pullinput_to_conv2d_synStateFromDevice() {
-    pullinSyninput_to_conv2d_synFromDevice();
 }
 
 
@@ -1782,6 +1761,18 @@ unsigned int* getCurrentnSpkconv2d_9_nrn(unsigned int batch) {
     return nSpkconv2d_9_nrn;
 }
 
+unsigned int* getconv2d_input_nrnCurrentSpikes(unsigned int batch) {
+    return (glbSpkconv2d_input_nrn);
+}
+
+unsigned int& getconv2d_input_nrnCurrentSpikeCount(unsigned int batch) {
+    return glbSpkCntconv2d_input_nrn[0];
+}
+
+scalar* getCurrentinputconv2d_input_nrn(unsigned int batch) {
+    return inputconv2d_input_nrn;
+}
+
 unsigned int* getconv2d_nrnCurrentSpikes(unsigned int batch) {
     return (glbSpkconv2d_nrn);
 }
@@ -1846,22 +1837,6 @@ unsigned int* getCurrentnSpkdense_nrn(unsigned int batch) {
     return nSpkdense_nrn;
 }
 
-unsigned int* getinput_nrnCurrentSpikes(unsigned int batch) {
-    return (glbSpkinput_nrn);
-}
-
-unsigned int& getinput_nrnCurrentSpikeCount(unsigned int batch) {
-    return glbSpkCntinput_nrn[0];
-}
-
-scalar* getCurrentinputinput_nrn(unsigned int batch) {
-    return inputinput_nrn;
-}
-
-scalar* getCurrentVmeminput_nrn(unsigned int batch) {
-    return Vmeminput_nrn;
-}
-
 
 void copyStateToDevice(bool uninitialisedOnly) {
     pushconv2d_1_nrnStateToDevice(uninitialisedOnly);
@@ -1873,11 +1848,11 @@ void copyStateToDevice(bool uninitialisedOnly) {
     pushconv2d_7_nrnStateToDevice(uninitialisedOnly);
     pushconv2d_8_nrnStateToDevice(uninitialisedOnly);
     pushconv2d_9_nrnStateToDevice(uninitialisedOnly);
+    pushconv2d_input_nrnStateToDevice(uninitialisedOnly);
     pushconv2d_nrnStateToDevice(uninitialisedOnly);
     pushdense_1_nrnStateToDevice(uninitialisedOnly);
     pushdense_2_nrnStateToDevice(uninitialisedOnly);
     pushdense_nrnStateToDevice(uninitialisedOnly);
-    pushinput_nrnStateToDevice(uninitialisedOnly);
     pushconv2d_1_to_conv2d_2_synStateToDevice(uninitialisedOnly);
     pushconv2d_2_to_conv2d_3_synStateToDevice(uninitialisedOnly);
     pushconv2d_3_to_conv2d_4_synStateToDevice(uninitialisedOnly);
@@ -1887,10 +1862,10 @@ void copyStateToDevice(bool uninitialisedOnly) {
     pushconv2d_7_to_conv2d_8_synStateToDevice(uninitialisedOnly);
     pushconv2d_8_to_conv2d_9_synStateToDevice(uninitialisedOnly);
     pushconv2d_9_to_dense_synStateToDevice(uninitialisedOnly);
+    pushconv2d_input_to_conv2d_synStateToDevice(uninitialisedOnly);
     pushconv2d_to_conv2d_1_synStateToDevice(uninitialisedOnly);
     pushdense_1_to_dense_2_synStateToDevice(uninitialisedOnly);
     pushdense_to_dense_1_synStateToDevice(uninitialisedOnly);
-    pushinput_to_conv2d_synStateToDevice(uninitialisedOnly);
 }
 
 void copyConnectivityToDevice(bool uninitialisedOnly) {
@@ -1906,11 +1881,11 @@ void copyStateFromDevice() {
     pullconv2d_7_nrnStateFromDevice();
     pullconv2d_8_nrnStateFromDevice();
     pullconv2d_9_nrnStateFromDevice();
+    pullconv2d_input_nrnStateFromDevice();
     pullconv2d_nrnStateFromDevice();
     pulldense_1_nrnStateFromDevice();
     pulldense_2_nrnStateFromDevice();
     pulldense_nrnStateFromDevice();
-    pullinput_nrnStateFromDevice();
     pullconv2d_1_to_conv2d_2_synStateFromDevice();
     pullconv2d_2_to_conv2d_3_synStateFromDevice();
     pullconv2d_3_to_conv2d_4_synStateFromDevice();
@@ -1920,10 +1895,10 @@ void copyStateFromDevice() {
     pullconv2d_7_to_conv2d_8_synStateFromDevice();
     pullconv2d_8_to_conv2d_9_synStateFromDevice();
     pullconv2d_9_to_dense_synStateFromDevice();
+    pullconv2d_input_to_conv2d_synStateFromDevice();
     pullconv2d_to_conv2d_1_synStateFromDevice();
     pulldense_1_to_dense_2_synStateFromDevice();
     pulldense_to_dense_1_synStateFromDevice();
-    pullinput_to_conv2d_synStateFromDevice();
 }
 
 void copyCurrentSpikesFromDevice() {
@@ -1936,11 +1911,11 @@ void copyCurrentSpikesFromDevice() {
     pullconv2d_7_nrnCurrentSpikesFromDevice();
     pullconv2d_8_nrnCurrentSpikesFromDevice();
     pullconv2d_9_nrnCurrentSpikesFromDevice();
+    pullconv2d_input_nrnCurrentSpikesFromDevice();
     pullconv2d_nrnCurrentSpikesFromDevice();
     pulldense_1_nrnCurrentSpikesFromDevice();
     pulldense_2_nrnCurrentSpikesFromDevice();
     pulldense_nrnCurrentSpikesFromDevice();
-    pullinput_nrnCurrentSpikesFromDevice();
 }
 
 void copyCurrentSpikeEventsFromDevice() {
@@ -2040,6 +2015,13 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaMalloc(&d_Vmemconv2d_9_nrn, 2048 * sizeof(scalar)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&nSpkconv2d_9_nrn, 2048 * sizeof(unsigned int), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_nSpkconv2d_9_nrn, 2048 * sizeof(unsigned int)));
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkCntconv2d_input_nrn, 1 * sizeof(unsigned int)));
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkconv2d_input_nrn, 3072 * sizeof(unsigned int), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkconv2d_input_nrn, 3072 * sizeof(unsigned int)));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_rngconv2d_input_nrn, 3072 * sizeof(curandState)));
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&inputconv2d_input_nrn, 3072 * sizeof(scalar), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_inputconv2d_input_nrn, 3072 * sizeof(scalar)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkCntconv2d_nrn, 1 * sizeof(unsigned int), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkCntconv2d_nrn, 1 * sizeof(unsigned int)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkconv2d_nrn, 65536 * sizeof(unsigned int), cudaHostAllocPortable));
@@ -2072,14 +2054,6 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaMalloc(&d_Vmemdense_nrn, 4096 * sizeof(scalar)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&nSpkdense_nrn, 4096 * sizeof(unsigned int), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_nSpkdense_nrn, 4096 * sizeof(unsigned int)));
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkCntinput_nrn, 1 * sizeof(unsigned int), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkCntinput_nrn, 1 * sizeof(unsigned int)));
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&glbSpkinput_nrn, 3072 * sizeof(unsigned int), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_glbSpkinput_nrn, 3072 * sizeof(unsigned int)));
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&inputinput_nrn, 3072 * sizeof(scalar), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_inputinput_nrn, 3072 * sizeof(scalar)));
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&Vmeminput_nrn, 3072 * sizeof(scalar), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_Vmeminput_nrn, 3072 * sizeof(scalar)));
     
     // ------------------------------------------------------------------------
     // custom update variables
@@ -2106,8 +2080,8 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaMalloc(&d_inSynconv2d_7_to_conv2d_8_syn, 2048 * sizeof(float)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&inSynconv2d_8_to_conv2d_9_syn, 2048 * sizeof(float), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_inSynconv2d_8_to_conv2d_9_syn, 2048 * sizeof(float)));
-    CHECK_CUDA_ERRORS(cudaHostAlloc(&inSyninput_to_conv2d_syn, 65536 * sizeof(float), cudaHostAllocPortable));
-    CHECK_CUDA_ERRORS(cudaMalloc(&d_inSyninput_to_conv2d_syn, 65536 * sizeof(float)));
+    CHECK_CUDA_ERRORS(cudaHostAlloc(&inSynconv2d_input_to_conv2d_syn, 65536 * sizeof(float), cudaHostAllocPortable));
+    CHECK_CUDA_ERRORS(cudaMalloc(&d_inSynconv2d_input_to_conv2d_syn, 65536 * sizeof(float)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&inSyndense_to_dense_1_syn, 4096 * sizeof(float), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_inSyndense_to_dense_1_syn, 4096 * sizeof(float)));
     CHECK_CUDA_ERRORS(cudaHostAlloc(&inSyndense_1_to_dense_2_syn, 10 * sizeof(float), cudaHostAllocPortable));
@@ -2127,7 +2101,7 @@ void allocateMem() {
     CHECK_CUDA_ERRORS(cudaHostAlloc(&gdense_to_dense_1_syn, 16777216 * sizeof(scalar), cudaHostAllocPortable));
     CHECK_CUDA_ERRORS(cudaMalloc(&d_gdense_to_dense_1_syn, 16777216 * sizeof(scalar)));
     
-    pushMergedNeuronInitGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_inputinput_nrn, d_Vmeminput_nrn, 3072);
+    pushMergedNeuronInitGroup0ToDevice(0, d_glbSpkCntconv2d_input_nrn, d_glbSpkconv2d_input_nrn, d_rngconv2d_input_nrn, d_inputconv2d_input_nrn, 3072);
     pushMergedNeuronInitGroup1ToDevice(0, d_glbSpkCntconv2d_1_nrn, d_glbSpkconv2d_1_nrn, d_Vmemconv2d_1_nrn, d_nSpkconv2d_1_nrn, d_inSynconv2d_to_conv2d_1_syn, 65536);
     pushMergedNeuronInitGroup1ToDevice(1, d_glbSpkCntconv2d_2_nrn, d_glbSpkconv2d_2_nrn, d_Vmemconv2d_2_nrn, d_nSpkconv2d_2_nrn, d_inSynconv2d_1_to_conv2d_2_syn, 32768);
     pushMergedNeuronInitGroup1ToDevice(2, d_glbSpkCntconv2d_3_nrn, d_glbSpkconv2d_3_nrn, d_Vmemconv2d_3_nrn, d_nSpkconv2d_3_nrn, d_inSynconv2d_2_to_conv2d_3_syn, 32768);
@@ -2137,11 +2111,11 @@ void allocateMem() {
     pushMergedNeuronInitGroup1ToDevice(6, d_glbSpkCntconv2d_7_nrn, d_glbSpkconv2d_7_nrn, d_Vmemconv2d_7_nrn, d_nSpkconv2d_7_nrn, d_inSynconv2d_6_to_conv2d_7_syn, 8192);
     pushMergedNeuronInitGroup1ToDevice(7, d_glbSpkCntconv2d_8_nrn, d_glbSpkconv2d_8_nrn, d_Vmemconv2d_8_nrn, d_nSpkconv2d_8_nrn, d_inSynconv2d_7_to_conv2d_8_syn, 2048);
     pushMergedNeuronInitGroup1ToDevice(8, d_glbSpkCntconv2d_9_nrn, d_glbSpkconv2d_9_nrn, d_Vmemconv2d_9_nrn, d_nSpkconv2d_9_nrn, d_inSynconv2d_8_to_conv2d_9_syn, 2048);
-    pushMergedNeuronInitGroup1ToDevice(9, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_Vmemconv2d_nrn, d_nSpkconv2d_nrn, d_inSyninput_to_conv2d_syn, 65536);
+    pushMergedNeuronInitGroup1ToDevice(9, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_Vmemconv2d_nrn, d_nSpkconv2d_nrn, d_inSynconv2d_input_to_conv2d_syn, 65536);
     pushMergedNeuronInitGroup1ToDevice(10, d_glbSpkCntdense_1_nrn, d_glbSpkdense_1_nrn, d_Vmemdense_1_nrn, d_nSpkdense_1_nrn, d_inSyndense_to_dense_1_syn, 4096);
     pushMergedNeuronInitGroup1ToDevice(11, d_glbSpkCntdense_2_nrn, d_glbSpkdense_2_nrn, d_Vmemdense_2_nrn, d_nSpkdense_2_nrn, d_inSyndense_1_to_dense_2_syn, 10);
     pushMergedNeuronInitGroup1ToDevice(12, d_glbSpkCntdense_nrn, d_glbSpkdense_nrn, d_Vmemdense_nrn, d_nSpkdense_nrn, d_inSynconv2d_9_to_dense_syn, 4096);
-    pushMergedNeuronUpdateGroup0ToDevice(0, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_inputinput_nrn, d_Vmeminput_nrn, 3072);
+    pushMergedNeuronUpdateGroup0ToDevice(0, d_glbSpkCntconv2d_input_nrn, d_glbSpkconv2d_input_nrn, d_rngconv2d_input_nrn, d_inputconv2d_input_nrn, 3072);
     pushMergedNeuronUpdateGroup1ToDevice(0, d_glbSpkCntconv2d_1_nrn, d_glbSpkconv2d_1_nrn, d_Vmemconv2d_1_nrn, d_nSpkconv2d_1_nrn, d_inSynconv2d_to_conv2d_1_syn, 65536, Vthrconv2d_1_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(1, d_glbSpkCntconv2d_2_nrn, d_glbSpkconv2d_2_nrn, d_Vmemconv2d_2_nrn, d_nSpkconv2d_2_nrn, d_inSynconv2d_1_to_conv2d_2_syn, 32768, Vthrconv2d_2_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(2, d_glbSpkCntconv2d_3_nrn, d_glbSpkconv2d_3_nrn, d_Vmemconv2d_3_nrn, d_nSpkconv2d_3_nrn, d_inSynconv2d_2_to_conv2d_3_syn, 32768, Vthrconv2d_3_nrn);
@@ -2151,7 +2125,7 @@ void allocateMem() {
     pushMergedNeuronUpdateGroup1ToDevice(6, d_glbSpkCntconv2d_7_nrn, d_glbSpkconv2d_7_nrn, d_Vmemconv2d_7_nrn, d_nSpkconv2d_7_nrn, d_inSynconv2d_6_to_conv2d_7_syn, 8192, Vthrconv2d_7_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(7, d_glbSpkCntconv2d_8_nrn, d_glbSpkconv2d_8_nrn, d_Vmemconv2d_8_nrn, d_nSpkconv2d_8_nrn, d_inSynconv2d_7_to_conv2d_8_syn, 2048, Vthrconv2d_8_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(8, d_glbSpkCntconv2d_9_nrn, d_glbSpkconv2d_9_nrn, d_Vmemconv2d_9_nrn, d_nSpkconv2d_9_nrn, d_inSynconv2d_8_to_conv2d_9_syn, 2048, Vthrconv2d_9_nrn);
-    pushMergedNeuronUpdateGroup1ToDevice(9, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_Vmemconv2d_nrn, d_nSpkconv2d_nrn, d_inSyninput_to_conv2d_syn, 65536, Vthrconv2d_nrn);
+    pushMergedNeuronUpdateGroup1ToDevice(9, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_Vmemconv2d_nrn, d_nSpkconv2d_nrn, d_inSynconv2d_input_to_conv2d_syn, 65536, Vthrconv2d_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(10, d_glbSpkCntdense_1_nrn, d_glbSpkdense_1_nrn, d_Vmemdense_1_nrn, d_nSpkdense_1_nrn, d_inSyndense_to_dense_1_syn, 4096, Vthrdense_1_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(11, d_glbSpkCntdense_2_nrn, d_glbSpkdense_2_nrn, d_Vmemdense_2_nrn, d_nSpkdense_2_nrn, d_inSyndense_1_to_dense_2_syn, 10, Vthrdense_2_nrn);
     pushMergedNeuronUpdateGroup1ToDevice(12, d_glbSpkCntdense_nrn, d_glbSpkdense_nrn, d_Vmemdense_nrn, d_nSpkdense_nrn, d_inSynconv2d_9_to_dense_syn, 4096, Vthrdense_nrn);
@@ -2166,8 +2140,8 @@ void allocateMem() {
     pushMergedPresynapticUpdateGroup3ToDevice(1, d_inSynconv2d_4_to_conv2d_5_syn, d_glbSpkCntconv2d_4_nrn, d_glbSpkconv2d_4_nrn, d_kernelgconv2d_4_to_conv2d_5_syn, 16384, 16384, 16384, 8.00000000000000000e+00f, 2.56000000000000000e+02f, 8.00000000000000000e+00f, 8.00000000000000000e+00f, 2.56000000000000000e+02f, 256, 256);
     pushMergedPresynapticUpdateGroup3ToDevice(2, d_inSynconv2d_6_to_conv2d_7_syn, d_glbSpkCntconv2d_6_nrn, d_glbSpkconv2d_6_nrn, d_kernelgconv2d_6_to_conv2d_7_syn, 8192, 8192, 8192, 4.00000000000000000e+00f, 5.12000000000000000e+02f, 4.00000000000000000e+00f, 4.00000000000000000e+00f, 5.12000000000000000e+02f, 512, 512);
     pushMergedPresynapticUpdateGroup3ToDevice(3, d_inSynconv2d_8_to_conv2d_9_syn, d_glbSpkCntconv2d_8_nrn, d_glbSpkconv2d_8_nrn, d_kernelgconv2d_8_to_conv2d_9_syn, 2048, 2048, 2048, 2.00000000000000000e+00f, 5.12000000000000000e+02f, 2.00000000000000000e+00f, 2.00000000000000000e+00f, 5.12000000000000000e+02f, 512, 512);
-    pushMergedPresynapticUpdateGroup3ToDevice(4, d_inSynconv2d_to_conv2d_1_syn, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_kernelgconv2d_to_conv2d_1_syn, 65536, 65536, 65536, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 3.20000000000000000e+01f, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 64, 64);
-    pushMergedPresynapticUpdateGroup3ToDevice(5, d_inSyninput_to_conv2d_syn, d_glbSpkCntinput_nrn, d_glbSpkinput_nrn, d_kernelginput_to_conv2d_syn, 65536, 3072, 65536, 3.20000000000000000e+01f, 3.00000000000000000e+00f, 3.20000000000000000e+01f, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 3, 64);
+    pushMergedPresynapticUpdateGroup3ToDevice(4, d_inSynconv2d_input_to_conv2d_syn, d_glbSpkCntconv2d_input_nrn, d_glbSpkconv2d_input_nrn, d_kernelgconv2d_input_to_conv2d_syn, 65536, 3072, 65536, 3.20000000000000000e+01f, 3.00000000000000000e+00f, 3.20000000000000000e+01f, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 3, 64);
+    pushMergedPresynapticUpdateGroup3ToDevice(5, d_inSynconv2d_to_conv2d_1_syn, d_glbSpkCntconv2d_nrn, d_glbSpkconv2d_nrn, d_kernelgconv2d_to_conv2d_1_syn, 65536, 65536, 65536, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 3.20000000000000000e+01f, 3.20000000000000000e+01f, 6.40000000000000000e+01f, 64, 64);
     pushMergedNeuronSpikeQueueUpdateGroup0ToDevice(0, d_glbSpkCntdense_2_nrn);
     pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(0, d_glbSpkCntconv2d_1_nrn);
     pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(1, d_glbSpkCntconv2d_2_nrn);
@@ -2178,10 +2152,10 @@ void allocateMem() {
     pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(6, d_glbSpkCntconv2d_7_nrn);
     pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(7, d_glbSpkCntconv2d_8_nrn);
     pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(8, d_glbSpkCntconv2d_9_nrn);
-    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(9, d_glbSpkCntconv2d_nrn);
-    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(10, d_glbSpkCntdense_1_nrn);
-    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(11, d_glbSpkCntdense_nrn);
-    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(12, d_glbSpkCntinput_nrn);
+    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(9, d_glbSpkCntconv2d_input_nrn);
+    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(10, d_glbSpkCntconv2d_nrn);
+    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(11, d_glbSpkCntdense_1_nrn);
+    pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(12, d_glbSpkCntdense_nrn);
 }
 
 void freeMem() {
@@ -2274,6 +2248,13 @@ void freeMem() {
     CHECK_CUDA_ERRORS(cudaFree(d_Vmemconv2d_9_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(nSpkconv2d_9_nrn));
     CHECK_CUDA_ERRORS(cudaFree(d_nSpkconv2d_9_nrn));
+    CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkCntconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFree(d_glbSpkCntconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFree(d_glbSpkconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFree(d_rngconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFreeHost(inputconv2d_input_nrn));
+    CHECK_CUDA_ERRORS(cudaFree(d_inputconv2d_input_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkCntconv2d_nrn));
     CHECK_CUDA_ERRORS(cudaFree(d_glbSpkCntconv2d_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkconv2d_nrn));
@@ -2306,14 +2287,6 @@ void freeMem() {
     CHECK_CUDA_ERRORS(cudaFree(d_Vmemdense_nrn));
     CHECK_CUDA_ERRORS(cudaFreeHost(nSpkdense_nrn));
     CHECK_CUDA_ERRORS(cudaFree(d_nSpkdense_nrn));
-    CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkCntinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFree(d_glbSpkCntinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFreeHost(glbSpkinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFree(d_glbSpkinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFreeHost(inputinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFree(d_inputinput_nrn));
-    CHECK_CUDA_ERRORS(cudaFreeHost(Vmeminput_nrn));
-    CHECK_CUDA_ERRORS(cudaFree(d_Vmeminput_nrn));
     
     // ------------------------------------------------------------------------
     // custom update variables
@@ -2340,8 +2313,8 @@ void freeMem() {
     CHECK_CUDA_ERRORS(cudaFree(d_inSynconv2d_7_to_conv2d_8_syn));
     CHECK_CUDA_ERRORS(cudaFreeHost(inSynconv2d_8_to_conv2d_9_syn));
     CHECK_CUDA_ERRORS(cudaFree(d_inSynconv2d_8_to_conv2d_9_syn));
-    CHECK_CUDA_ERRORS(cudaFreeHost(inSyninput_to_conv2d_syn));
-    CHECK_CUDA_ERRORS(cudaFree(d_inSyninput_to_conv2d_syn));
+    CHECK_CUDA_ERRORS(cudaFreeHost(inSynconv2d_input_to_conv2d_syn));
+    CHECK_CUDA_ERRORS(cudaFree(d_inSynconv2d_input_to_conv2d_syn));
     CHECK_CUDA_ERRORS(cudaFreeHost(inSyndense_to_dense_1_syn));
     CHECK_CUDA_ERRORS(cudaFree(d_inSyndense_to_dense_1_syn));
     CHECK_CUDA_ERRORS(cudaFreeHost(inSyndense_1_to_dense_2_syn));

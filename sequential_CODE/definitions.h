@@ -160,6 +160,16 @@ EXPORT_VAR scalar* d_Vmemconv2d_9_nrn;
 EXPORT_VAR unsigned int* nSpkconv2d_9_nrn;
 EXPORT_VAR unsigned int* d_nSpkconv2d_9_nrn;
 EXPORT_VAR scalar Vthrconv2d_9_nrn;
+#define spikeCount_conv2d_input_nrn glbSpkCntconv2d_input_nrn[0]
+#define spike_conv2d_input_nrn glbSpkconv2d_input_nrn
+#define glbSpkShiftconv2d_input_nrn 0
+
+EXPORT_VAR unsigned int* glbSpkCntconv2d_input_nrn;
+EXPORT_VAR unsigned int* d_glbSpkCntconv2d_input_nrn;
+EXPORT_VAR unsigned int* glbSpkconv2d_input_nrn;
+EXPORT_VAR unsigned int* d_glbSpkconv2d_input_nrn;
+EXPORT_VAR scalar* inputconv2d_input_nrn;
+EXPORT_VAR scalar* d_inputconv2d_input_nrn;
 #define spikeCount_conv2d_nrn glbSpkCntconv2d_nrn[0]
 #define spike_conv2d_nrn glbSpkconv2d_nrn
 #define glbSpkShiftconv2d_nrn 0
@@ -212,18 +222,6 @@ EXPORT_VAR scalar* d_Vmemdense_nrn;
 EXPORT_VAR unsigned int* nSpkdense_nrn;
 EXPORT_VAR unsigned int* d_nSpkdense_nrn;
 EXPORT_VAR scalar Vthrdense_nrn;
-#define spikeCount_input_nrn glbSpkCntinput_nrn[0]
-#define spike_input_nrn glbSpkinput_nrn
-#define glbSpkShiftinput_nrn 0
-
-EXPORT_VAR unsigned int* glbSpkCntinput_nrn;
-EXPORT_VAR unsigned int* d_glbSpkCntinput_nrn;
-EXPORT_VAR unsigned int* glbSpkinput_nrn;
-EXPORT_VAR unsigned int* d_glbSpkinput_nrn;
-EXPORT_VAR scalar* inputinput_nrn;
-EXPORT_VAR scalar* d_inputinput_nrn;
-EXPORT_VAR scalar* Vmeminput_nrn;
-EXPORT_VAR scalar* d_Vmeminput_nrn;
 
 // ------------------------------------------------------------------------
 // custom update variables
@@ -250,8 +248,8 @@ EXPORT_VAR float* inSynconv2d_7_to_conv2d_8_syn;
 EXPORT_VAR float* d_inSynconv2d_7_to_conv2d_8_syn;
 EXPORT_VAR float* inSynconv2d_8_to_conv2d_9_syn;
 EXPORT_VAR float* d_inSynconv2d_8_to_conv2d_9_syn;
-EXPORT_VAR float* inSyninput_to_conv2d_syn;
-EXPORT_VAR float* d_inSyninput_to_conv2d_syn;
+EXPORT_VAR float* inSynconv2d_input_to_conv2d_syn;
+EXPORT_VAR float* d_inSynconv2d_input_to_conv2d_syn;
 EXPORT_VAR float* inSyndense_to_dense_1_syn;
 EXPORT_VAR float* d_inSyndense_to_dense_1_syn;
 EXPORT_VAR float* inSyndense_1_to_dense_2_syn;
@@ -284,14 +282,14 @@ EXPORT_VAR scalar* kernelgconv2d_8_to_conv2d_9_syn;
 EXPORT_VAR scalar* d_kernelgconv2d_8_to_conv2d_9_syn;
 EXPORT_VAR scalar* weightsgconv2d_9_to_dense_syn;
 EXPORT_VAR scalar* d_weightsgconv2d_9_to_dense_syn;
+EXPORT_VAR scalar* kernelgconv2d_input_to_conv2d_syn;
+EXPORT_VAR scalar* d_kernelgconv2d_input_to_conv2d_syn;
 EXPORT_VAR scalar* kernelgconv2d_to_conv2d_1_syn;
 EXPORT_VAR scalar* d_kernelgconv2d_to_conv2d_1_syn;
 EXPORT_VAR scalar* gdense_1_to_dense_2_syn;
 EXPORT_VAR scalar* d_gdense_1_to_dense_2_syn;
 EXPORT_VAR scalar* gdense_to_dense_1_syn;
 EXPORT_VAR scalar* d_gdense_to_dense_1_syn;
-EXPORT_VAR scalar* kernelginput_to_conv2d_syn;
-EXPORT_VAR scalar* d_kernelginput_to_conv2d_syn;
 
 EXPORT_FUNC void pushconv2d_1_nrnSpikesToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullconv2d_1_nrnSpikesFromDevice();
@@ -455,6 +453,19 @@ EXPORT_FUNC void pullCurrentnSpkconv2d_9_nrnFromDevice();
 EXPORT_FUNC unsigned int* getCurrentnSpkconv2d_9_nrn(unsigned int batch = 0); 
 EXPORT_FUNC void pushconv2d_9_nrnStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullconv2d_9_nrnStateFromDevice();
+EXPORT_FUNC void pushconv2d_input_nrnSpikesToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullconv2d_input_nrnSpikesFromDevice();
+EXPORT_FUNC void pushconv2d_input_nrnCurrentSpikesToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullconv2d_input_nrnCurrentSpikesFromDevice();
+EXPORT_FUNC unsigned int* getconv2d_input_nrnCurrentSpikes(unsigned int batch = 0); 
+EXPORT_FUNC unsigned int& getconv2d_input_nrnCurrentSpikeCount(unsigned int batch = 0); 
+EXPORT_FUNC void pushinputconv2d_input_nrnToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullinputconv2d_input_nrnFromDevice();
+EXPORT_FUNC void pushCurrentinputconv2d_input_nrnToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullCurrentinputconv2d_input_nrnFromDevice();
+EXPORT_FUNC scalar* getCurrentinputconv2d_input_nrn(unsigned int batch = 0); 
+EXPORT_FUNC void pushconv2d_input_nrnStateToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullconv2d_input_nrnStateFromDevice();
 EXPORT_FUNC void pushconv2d_nrnSpikesToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullconv2d_nrnSpikesFromDevice();
 EXPORT_FUNC void pushconv2d_nrnCurrentSpikesToDevice(bool uninitialisedOnly = false);
@@ -527,24 +538,6 @@ EXPORT_FUNC void pullCurrentnSpkdense_nrnFromDevice();
 EXPORT_FUNC unsigned int* getCurrentnSpkdense_nrn(unsigned int batch = 0); 
 EXPORT_FUNC void pushdense_nrnStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pulldense_nrnStateFromDevice();
-EXPORT_FUNC void pushinput_nrnSpikesToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinput_nrnSpikesFromDevice();
-EXPORT_FUNC void pushinput_nrnCurrentSpikesToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinput_nrnCurrentSpikesFromDevice();
-EXPORT_FUNC unsigned int* getinput_nrnCurrentSpikes(unsigned int batch = 0); 
-EXPORT_FUNC unsigned int& getinput_nrnCurrentSpikeCount(unsigned int batch = 0); 
-EXPORT_FUNC void pushinputinput_nrnToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinputinput_nrnFromDevice();
-EXPORT_FUNC void pushCurrentinputinput_nrnToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullCurrentinputinput_nrnFromDevice();
-EXPORT_FUNC scalar* getCurrentinputinput_nrn(unsigned int batch = 0); 
-EXPORT_FUNC void pushVmeminput_nrnToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullVmeminput_nrnFromDevice();
-EXPORT_FUNC void pushCurrentVmeminput_nrnToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullCurrentVmeminput_nrnFromDevice();
-EXPORT_FUNC scalar* getCurrentVmeminput_nrn(unsigned int batch = 0); 
-EXPORT_FUNC void pushinput_nrnStateToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinput_nrnStateFromDevice();
 EXPORT_FUNC void allocatekernelgconv2d_1_to_conv2d_2_syn(unsigned int count);
 EXPORT_FUNC void freekernelgconv2d_1_to_conv2d_2_syn();
 EXPORT_FUNC void pushkernelgconv2d_1_to_conv2d_2_synToDevice(unsigned int count);
@@ -617,6 +610,14 @@ EXPORT_FUNC void pushinSynconv2d_9_to_dense_synToDevice(bool uninitialisedOnly =
 EXPORT_FUNC void pullinSynconv2d_9_to_dense_synFromDevice();
 EXPORT_FUNC void pushconv2d_9_to_dense_synStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullconv2d_9_to_dense_synStateFromDevice();
+EXPORT_FUNC void allocatekernelgconv2d_input_to_conv2d_syn(unsigned int count);
+EXPORT_FUNC void freekernelgconv2d_input_to_conv2d_syn();
+EXPORT_FUNC void pushkernelgconv2d_input_to_conv2d_synToDevice(unsigned int count);
+EXPORT_FUNC void pullkernelgconv2d_input_to_conv2d_synFromDevice(unsigned int count);
+EXPORT_FUNC void pushinSynconv2d_input_to_conv2d_synToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullinSynconv2d_input_to_conv2d_synFromDevice();
+EXPORT_FUNC void pushconv2d_input_to_conv2d_synStateToDevice(bool uninitialisedOnly = false);
+EXPORT_FUNC void pullconv2d_input_to_conv2d_synStateFromDevice();
 EXPORT_FUNC void allocatekernelgconv2d_to_conv2d_1_syn(unsigned int count);
 EXPORT_FUNC void freekernelgconv2d_to_conv2d_1_syn();
 EXPORT_FUNC void pushkernelgconv2d_to_conv2d_1_synToDevice(unsigned int count);
@@ -637,14 +638,6 @@ EXPORT_FUNC void pushinSyndense_to_dense_1_synToDevice(bool uninitialisedOnly = 
 EXPORT_FUNC void pullinSyndense_to_dense_1_synFromDevice();
 EXPORT_FUNC void pushdense_to_dense_1_synStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pulldense_to_dense_1_synStateFromDevice();
-EXPORT_FUNC void allocatekernelginput_to_conv2d_syn(unsigned int count);
-EXPORT_FUNC void freekernelginput_to_conv2d_syn();
-EXPORT_FUNC void pushkernelginput_to_conv2d_synToDevice(unsigned int count);
-EXPORT_FUNC void pullkernelginput_to_conv2d_synFromDevice(unsigned int count);
-EXPORT_FUNC void pushinSyninput_to_conv2d_synToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinSyninput_to_conv2d_synFromDevice();
-EXPORT_FUNC void pushinput_to_conv2d_synStateToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullinput_to_conv2d_synStateFromDevice();
 // Runner functions
 EXPORT_FUNC void copyStateToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void copyConnectivityToDevice(bool uninitialisedOnly = false);
