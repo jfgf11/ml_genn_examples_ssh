@@ -35,7 +35,7 @@ def resnet18(num_classes):
     counter += 1 if i%2==1 else 0
     x = resnetFunctionalIdentity(x, 128*(2**counter), i%2)
   
-  x = tf.keras.layers.Flatten()(x)
+  x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
   x = tf.keras.layers.Dense(num_classes, activation='softmax', use_bias='False')(x)
 

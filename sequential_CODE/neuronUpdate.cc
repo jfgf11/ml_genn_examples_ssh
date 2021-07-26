@@ -5,7 +5,8 @@ struct MergedNeuronUpdateGroup0
  {
     unsigned int* spkCnt;
     unsigned int* spk;
-    curandState* rng;
+    unsigned int* spkCntEvnt;
+    unsigned int* spkEvnt;
     scalar* input;
     unsigned int numNeurons;
     
@@ -35,19 +36,31 @@ struct MergedNeuronSpikeQueueUpdateGroup1
     
 }
 ;
-__device__ __constant__ MergedNeuronSpikeQueueUpdateGroup0 d_mergedNeuronSpikeQueueUpdateGroup0[1];
+struct MergedNeuronSpikeQueueUpdateGroup2
+ {
+    unsigned int* spkCnt;
+    unsigned int* spkCntEvnt;
+    
+}
+;
+__device__ __constant__ MergedNeuronSpikeQueueUpdateGroup0 d_mergedNeuronSpikeQueueUpdateGroup0[12];
 void pushMergedNeuronSpikeQueueUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt) {
     MergedNeuronSpikeQueueUpdateGroup0 group = {spkCnt, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronSpikeQueueUpdateGroup0, &group, sizeof(MergedNeuronSpikeQueueUpdateGroup0), idx * sizeof(MergedNeuronSpikeQueueUpdateGroup0)));
 }
-__device__ __constant__ MergedNeuronSpikeQueueUpdateGroup1 d_mergedNeuronSpikeQueueUpdateGroup1[13];
+__device__ __constant__ MergedNeuronSpikeQueueUpdateGroup1 d_mergedNeuronSpikeQueueUpdateGroup1[1];
 void pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt) {
     MergedNeuronSpikeQueueUpdateGroup1 group = {spkCnt, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronSpikeQueueUpdateGroup1, &group, sizeof(MergedNeuronSpikeQueueUpdateGroup1), idx * sizeof(MergedNeuronSpikeQueueUpdateGroup1)));
 }
+__device__ __constant__ MergedNeuronSpikeQueueUpdateGroup2 d_mergedNeuronSpikeQueueUpdateGroup2[1];
+void pushMergedNeuronSpikeQueueUpdateGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spkCntEvnt) {
+    MergedNeuronSpikeQueueUpdateGroup2 group = {spkCnt, spkCntEvnt, };
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronSpikeQueueUpdateGroup2, &group, sizeof(MergedNeuronSpikeQueueUpdateGroup2), idx * sizeof(MergedNeuronSpikeQueueUpdateGroup2)));
+}
 __device__ __constant__ MergedNeuronUpdateGroup0 d_mergedNeuronUpdateGroup0[1];
-void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons) {
-    MergedNeuronUpdateGroup0 group = {spkCnt, spk, rng, input, numNeurons, };
+void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, unsigned int* spkCntEvnt, unsigned int* spkEvnt, scalar* input, unsigned int numNeurons) {
+    MergedNeuronUpdateGroup0 group = {spkCnt, spk, spkCntEvnt, spkEvnt, input, numNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronUpdateGroup0, &group, sizeof(MergedNeuronUpdateGroup0), idx * sizeof(MergedNeuronUpdateGroup0)));
 }
 __device__ __constant__ MergedNeuronUpdateGroup1 d_mergedNeuronUpdateGroup1[13];
@@ -66,12 +79,17 @@ __device__ __constant__ unsigned int d_mergedNeuronUpdateGroupStartID1[] = {3072
 
 extern "C" __global__ void neuronSpikeQueueUpdateKernel() {
     const unsigned int id = 32 * blockIdx.x + threadIdx.x;
-    if(id < 1) {
+    if(id < 12) {
         struct MergedNeuronSpikeQueueUpdateGroup0 *group = &d_mergedNeuronSpikeQueueUpdateGroup0[id - 0]; 
         group->spkCnt[0] = 0;
     }
-    if(id >= 1 && id < 14) {
-        struct MergedNeuronSpikeQueueUpdateGroup1 *group = &d_mergedNeuronSpikeQueueUpdateGroup1[id - 1]; 
+    if(id >= 12 && id < 13) {
+        struct MergedNeuronSpikeQueueUpdateGroup1 *group = &d_mergedNeuronSpikeQueueUpdateGroup1[id - 12]; 
+        group->spkCnt[0] = 0;
+    }
+    if(id >= 13 && id < 14) {
+        struct MergedNeuronSpikeQueueUpdateGroup2 *group = &d_mergedNeuronSpikeQueueUpdateGroup2[id - 13]; 
+        group->spkCntEvnt[0] = 0;
         group->spkCnt[0] = 0;
     }
 }
@@ -79,6 +97,14 @@ extern "C" __global__ void neuronSpikeQueueUpdateKernel() {
 extern "C" __global__ void updateNeuronsKernel(float t)
  {
     const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
+    __shared__ unsigned int shSpkEvnt[64];
+    __shared__ unsigned int shPosSpkEvnt;
+    __shared__ unsigned int shSpkEvntCount;
+    
+    if (threadIdx.x == 1) {
+        shSpkEvntCount = 0;
+    }
+    
     __shared__ unsigned int shSpk[64];
     __shared__ unsigned int shPosSpk;
     __shared__ unsigned int shSpkCount;
@@ -98,8 +124,19 @@ extern "C" __global__ void updateNeuronsKernel(float t)
             // test whether spike condition was fulfilled previously
             // calculate membrane potential
             
-            const bool spike = curand_uniform(&group->rng[lid]) >= exp(-fabs(linput) * DT);
+            const bool spike = linput != 0.0f;
             
+            bool spikeLikeEvent = false;
+             {
+                spikeLikeEvent |= (
+                linput < 0.0f && spike
+                );
+            }
+            // register a spike-like event
+            if (spikeLikeEvent) {
+                const unsigned int spkEvntIdx = atomicAdd(&shSpkEvntCount, 1);
+                shSpkEvnt[spkEvntIdx] = lid;
+            }
             // test for and register a true spike
             if (
             linput > 0.0f && spike
@@ -109,12 +146,22 @@ extern "C" __global__ void updateNeuronsKernel(float t)
             }
         }
         __syncthreads();
+        if (threadIdx.x == 1) {
+            if (shSpkEvntCount > 0) {
+                shPosSpkEvnt = atomicAdd(&group->spkCntEvnt[0], shSpkEvntCount);
+            }
+        }
+        __syncthreads();
         if(threadIdx.x == 0) {
             if (shSpkCount > 0) {
                 shPosSpk = atomicAdd(&group->spkCnt[0], shSpkCount);
             }
         }
         __syncthreads();
+        if(threadIdx.x < shSpkEvntCount) {
+            const unsigned int n = shSpkEvnt[threadIdx.x];
+            group->spkEvnt[shPosSpkEvnt + threadIdx.x] = n;
+        }
         if(threadIdx.x < shSpkCount) {
             const unsigned int n = shSpk[threadIdx.x];
             group->spk[shPosSpk + threadIdx.x] = n;

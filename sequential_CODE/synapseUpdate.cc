@@ -18,6 +18,21 @@ struct MergedPresynapticUpdateGroup1
     float* inSyn;
     unsigned int* srcSpkCnt;
     unsigned int* srcSpk;
+    unsigned int* srcSpkCntEvnt;
+    unsigned int* srcSpkEvnt;
+    scalar* inputPre;
+    scalar* kernelg;
+    unsigned int rowStride;
+    unsigned int numSrcNeurons;
+    unsigned int numTrgNeurons;
+    
+}
+;
+struct MergedPresynapticUpdateGroup2
+ {
+    float* inSyn;
+    unsigned int* srcSpkCnt;
+    unsigned int* srcSpk;
     scalar* kernelg;
     unsigned int rowStride;
     unsigned int numSrcNeurons;
@@ -33,7 +48,7 @@ struct MergedPresynapticUpdateGroup1
     
 }
 ;
-struct MergedPresynapticUpdateGroup2
+struct MergedPresynapticUpdateGroup3
  {
     float* inSyn;
     unsigned int* srcSpkCnt;
@@ -45,7 +60,7 @@ struct MergedPresynapticUpdateGroup2
     
 }
 ;
-struct MergedPresynapticUpdateGroup3
+struct MergedPresynapticUpdateGroup4
  {
     float* inSyn;
     unsigned int* srcSpkCnt;
@@ -69,20 +84,25 @@ void pushMergedPresynapticUpdateGroup0ToDevice(unsigned int idx, float* inSyn, u
     MergedPresynapticUpdateGroup0 group = {inSyn, srcSpkCnt, srcSpk, g, rowStride, numSrcNeurons, numTrgNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup0, &group, sizeof(MergedPresynapticUpdateGroup0), idx * sizeof(MergedPresynapticUpdateGroup0)));
 }
-__device__ __constant__ MergedPresynapticUpdateGroup1 d_mergedPresynapticUpdateGroup1[4];
-void pushMergedPresynapticUpdateGroup1ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons, scalar pool_ih, scalar pool_iw, scalar pool_ic, scalar conv_oh, scalar conv_ow, scalar conv_oc, unsigned int kernelSize2, unsigned int kernelSize3) {
-    MergedPresynapticUpdateGroup1 group = {inSyn, srcSpkCnt, srcSpk, kernelg, rowStride, numSrcNeurons, numTrgNeurons, pool_ih, pool_iw, pool_ic, conv_oh, conv_ow, conv_oc, kernelSize2, kernelSize3, };
+__device__ __constant__ MergedPresynapticUpdateGroup1 d_mergedPresynapticUpdateGroup1[1];
+void pushMergedPresynapticUpdateGroup1ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, unsigned int* srcSpkCntEvnt, unsigned int* srcSpkEvnt, scalar* inputPre, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons) {
+    MergedPresynapticUpdateGroup1 group = {inSyn, srcSpkCnt, srcSpk, srcSpkCntEvnt, srcSpkEvnt, inputPre, kernelg, rowStride, numSrcNeurons, numTrgNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup1, &group, sizeof(MergedPresynapticUpdateGroup1), idx * sizeof(MergedPresynapticUpdateGroup1)));
 }
-__device__ __constant__ MergedPresynapticUpdateGroup2 d_mergedPresynapticUpdateGroup2[1];
-void pushMergedPresynapticUpdateGroup2ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* weightsg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons) {
-    MergedPresynapticUpdateGroup2 group = {inSyn, srcSpkCnt, srcSpk, weightsg, rowStride, numSrcNeurons, numTrgNeurons, };
+__device__ __constant__ MergedPresynapticUpdateGroup2 d_mergedPresynapticUpdateGroup2[4];
+void pushMergedPresynapticUpdateGroup2ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons, scalar pool_ih, scalar pool_iw, scalar pool_ic, scalar conv_oh, scalar conv_ow, scalar conv_oc, unsigned int kernelSize2, unsigned int kernelSize3) {
+    MergedPresynapticUpdateGroup2 group = {inSyn, srcSpkCnt, srcSpk, kernelg, rowStride, numSrcNeurons, numTrgNeurons, pool_ih, pool_iw, pool_ic, conv_oh, conv_ow, conv_oc, kernelSize2, kernelSize3, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup2, &group, sizeof(MergedPresynapticUpdateGroup2), idx * sizeof(MergedPresynapticUpdateGroup2)));
 }
-__device__ __constant__ MergedPresynapticUpdateGroup3 d_mergedPresynapticUpdateGroup3[6];
-void pushMergedPresynapticUpdateGroup3ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons, scalar conv_iw, scalar conv_ic, scalar conv_oh, scalar conv_ow, scalar conv_oc, unsigned int kernelSize2, unsigned int kernelSize3) {
-    MergedPresynapticUpdateGroup3 group = {inSyn, srcSpkCnt, srcSpk, kernelg, rowStride, numSrcNeurons, numTrgNeurons, conv_iw, conv_ic, conv_oh, conv_ow, conv_oc, kernelSize2, kernelSize3, };
+__device__ __constant__ MergedPresynapticUpdateGroup3 d_mergedPresynapticUpdateGroup3[1];
+void pushMergedPresynapticUpdateGroup3ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* weightsg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons) {
+    MergedPresynapticUpdateGroup3 group = {inSyn, srcSpkCnt, srcSpk, weightsg, rowStride, numSrcNeurons, numTrgNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup3, &group, sizeof(MergedPresynapticUpdateGroup3), idx * sizeof(MergedPresynapticUpdateGroup3)));
+}
+__device__ __constant__ MergedPresynapticUpdateGroup4 d_mergedPresynapticUpdateGroup4[5];
+void pushMergedPresynapticUpdateGroup4ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons, scalar conv_iw, scalar conv_ic, scalar conv_oh, scalar conv_ow, scalar conv_oc, unsigned int kernelSize2, unsigned int kernelSize3) {
+    MergedPresynapticUpdateGroup4 group = {inSyn, srcSpkCnt, srcSpk, kernelg, rowStride, numSrcNeurons, numTrgNeurons, conv_iw, conv_ic, conv_oh, conv_ow, conv_oc, kernelSize2, kernelSize3, };
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup4, &group, sizeof(MergedPresynapticUpdateGroup4), idx * sizeof(MergedPresynapticUpdateGroup4)));
 }
 // ------------------------------------------------------------------------
 // merged extra global parameter functions
@@ -91,22 +111,28 @@ void pushMergedPresynapticUpdate1kernelgToDevice(unsigned int idx, scalar* value
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup1, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup1) * (idx)) + offsetof(MergedPresynapticUpdateGroup1, kernelg)));
 }
 
-void pushMergedPresynapticUpdate2weightsgToDevice(unsigned int idx, scalar* value) {
-    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup2, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup2) * (idx)) + offsetof(MergedPresynapticUpdateGroup2, weightsg)));
+void pushMergedPresynapticUpdate2kernelgToDevice(unsigned int idx, scalar* value) {
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup2, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup2) * (idx)) + offsetof(MergedPresynapticUpdateGroup2, kernelg)));
 }
 
-void pushMergedPresynapticUpdate3kernelgToDevice(unsigned int idx, scalar* value) {
-    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup3, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup3) * (idx)) + offsetof(MergedPresynapticUpdateGroup3, kernelg)));
+void pushMergedPresynapticUpdate3weightsgToDevice(unsigned int idx, scalar* value) {
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup3, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup3) * (idx)) + offsetof(MergedPresynapticUpdateGroup3, weightsg)));
+}
+
+void pushMergedPresynapticUpdate4kernelgToDevice(unsigned int idx, scalar* value) {
+    CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedPresynapticUpdateGroup4, &value, sizeof(value), (sizeof(MergedPresynapticUpdateGroup4) * (idx)) + offsetof(MergedPresynapticUpdateGroup4, kernelg)));
 }
 
 __device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID0[] = {0, 64, };
-__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID1[] = {4160, 69696, 102464, 118848, };
-__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID2[] = {127040, };
-__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID3[] = {131136, 163904, 180288, 188480, 190528, 193600, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID1[] = {4160, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID2[] = {7232, 72768, 105536, 121920, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID3[] = {130112, };
+__device__ __constant__ unsigned int d_mergedPresynapticUpdateGroupStartID4[] = {134208, 166976, 183360, 191552, 193600, };
 extern "C" __global__ void updatePresynapticKernel(float t)
  {
     const unsigned int id = 64 * blockIdx.x + threadIdx.x; 
     __shared__ unsigned int shSpk[64];
+    __shared__ unsigned int shSpkEvnt[64];
     // merged0
     if(id < 4160) {
         unsigned int lo = 0;
@@ -153,21 +179,139 @@ extern "C" __global__ void updatePresynapticKernel(float t)
         }
     }
     // merged1
-    if(id >= 4160 && id < 127040) {
+    if(id >= 4160 && id < 7232) {
+        struct MergedPresynapticUpdateGroup1 *group = &d_mergedPresynapticUpdateGroup1[0]; 
+        const unsigned int lid = id - 4160;
+         {
+            const unsigned int spike = lid;
+            if (spike < group->srcSpkCntEvnt[0]) {
+                const unsigned int preInd = group->srcSpkEvnt[spike];
+                while(true) {
+                    
+                    // Stash all parameters in registers
+                    // **NOTE** this means parameters from group structure only get converted from float->int once
+                    // **NOTE** if they're actually constant, compiler is still likely to treat them as constants rather than allocating registers
+                    const int conv_kh = (3.00000000000000000e+00f), conv_kw = (3.00000000000000000e+00f);
+                    const int conv_sh = (1.00000000000000000e+00f), conv_sw = (1.00000000000000000e+00f);
+                    const int conv_padh = (1.00000000000000000e+00f), conv_padw = (1.00000000000000000e+00f);
+                    const int conv_iw = (3.20000000000000000e+01f), conv_ic = (3.00000000000000000e+00f);
+                    const int conv_ow = (3.20000000000000000e+01f), conv_oh = (3.20000000000000000e+01f), conv_oc = (6.40000000000000000e+01f);
+                    
+                    // Convert presynaptic neuron ID to row, column and channel in conv input
+                    const int inRow = (preInd / conv_ic) / conv_iw;
+                    const int inCol = (preInd / conv_ic) % conv_iw;
+                    const int inChan = preInd % conv_ic;
+                    
+                    // Calculate range of output rows and columns which this presynaptic neuron connects to
+                    const int minOutRow = min(conv_oh, max(0, 1 + ((inRow + conv_padh - conv_kh) / conv_sh)));
+                    const int maxOutRow = min(conv_oh, max(0, 1 + ((inRow + conv_padh) / conv_sh)));
+                    const int minOutCol = min(conv_ow, max(0, 1 + ((inCol + conv_padw - conv_kw) / conv_sw)));
+                    const int maxOutCol = min(conv_ow, max(0, 1 + ((inCol + conv_padw) / conv_sw)));
+                    
+                    // Loop through output rows, columns and channels
+                    for(int outRow = minOutRow; outRow != maxOutRow; outRow++) {
+                        const int strideRow = (outRow * conv_sh) - conv_padh;
+                        const int kernRow = inRow - strideRow;
+                        for(int outCol = minOutCol; outCol < maxOutCol; outCol++) {
+                            const int strideCol = (outCol * conv_sw) - conv_padw;
+                            const int kernCol = inCol - strideCol;
+                            for(int outChan = 0; outChan < conv_oc; outChan++) {
+                                // Calculate postsynaptic index and add synapse
+                                const int idPost = ((outRow * conv_ow * conv_oc) +
+                                                    (outCol * conv_oc) +
+                                                    outChan);
+                                const unsigned int kernelInd = (kernRow * 3 * 3 * 64) + (kernCol * 3 * 64) + (inChan * 64) + (outChan);
+                    scalar lg;
+                     {
+                        lg = group->kernelg[kernelInd];
+                    }
+                    
+                    atomicAdd(&group->inSyn[idPost], -lg);
+                    ;
+                            }
+                        }
+                    }
+                    
+                    // End the row
+                    break;
+                    
+                }
+            }
+        }
+         {
+            const unsigned int spike = lid;
+            if (spike < group->srcSpkCnt[0]) {
+                const unsigned int preInd = group->srcSpk[spike];
+                while(true) {
+                    
+                    // Stash all parameters in registers
+                    // **NOTE** this means parameters from group structure only get converted from float->int once
+                    // **NOTE** if they're actually constant, compiler is still likely to treat them as constants rather than allocating registers
+                    const int conv_kh = (3.00000000000000000e+00f), conv_kw = (3.00000000000000000e+00f);
+                    const int conv_sh = (1.00000000000000000e+00f), conv_sw = (1.00000000000000000e+00f);
+                    const int conv_padh = (1.00000000000000000e+00f), conv_padw = (1.00000000000000000e+00f);
+                    const int conv_iw = (3.20000000000000000e+01f), conv_ic = (3.00000000000000000e+00f);
+                    const int conv_ow = (3.20000000000000000e+01f), conv_oh = (3.20000000000000000e+01f), conv_oc = (6.40000000000000000e+01f);
+                    
+                    // Convert presynaptic neuron ID to row, column and channel in conv input
+                    const int inRow = (preInd / conv_ic) / conv_iw;
+                    const int inCol = (preInd / conv_ic) % conv_iw;
+                    const int inChan = preInd % conv_ic;
+                    
+                    // Calculate range of output rows and columns which this presynaptic neuron connects to
+                    const int minOutRow = min(conv_oh, max(0, 1 + ((inRow + conv_padh - conv_kh) / conv_sh)));
+                    const int maxOutRow = min(conv_oh, max(0, 1 + ((inRow + conv_padh) / conv_sh)));
+                    const int minOutCol = min(conv_ow, max(0, 1 + ((inCol + conv_padw - conv_kw) / conv_sw)));
+                    const int maxOutCol = min(conv_ow, max(0, 1 + ((inCol + conv_padw) / conv_sw)));
+                    
+                    // Loop through output rows, columns and channels
+                    for(int outRow = minOutRow; outRow != maxOutRow; outRow++) {
+                        const int strideRow = (outRow * conv_sh) - conv_padh;
+                        const int kernRow = inRow - strideRow;
+                        for(int outCol = minOutCol; outCol < maxOutCol; outCol++) {
+                            const int strideCol = (outCol * conv_sw) - conv_padw;
+                            const int kernCol = inCol - strideCol;
+                            for(int outChan = 0; outChan < conv_oc; outChan++) {
+                                // Calculate postsynaptic index and add synapse
+                                const int idPost = ((outRow * conv_ow * conv_oc) +
+                                                    (outCol * conv_oc) +
+                                                    outChan);
+                                const unsigned int kernelInd = (kernRow * 3 * 3 * 64) + (kernCol * 3 * 64) + (inChan * 64) + (outChan);
+                    scalar lg;
+                     {
+                        lg = group->kernelg[kernelInd];
+                    }
+                    
+                    atomicAdd(&group->inSyn[idPost], lg);
+                    ;
+                            }
+                        }
+                    }
+                    
+                    // End the row
+                    break;
+                    
+                }
+            }
+        }
+        
+    }
+    // merged2
+    if(id >= 7232 && id < 130112) {
         unsigned int lo = 0;
         unsigned int hi = 4;
         while(lo < hi)
          {
             const unsigned int mid = (lo + hi) / 2;
-            if(id < d_mergedPresynapticUpdateGroupStartID1[mid]) {
+            if(id < d_mergedPresynapticUpdateGroupStartID2[mid]) {
                 hi = mid;
             }
             else {
                 lo = mid + 1;
             }
         }
-        struct MergedPresynapticUpdateGroup1 *group = &d_mergedPresynapticUpdateGroup1[lo - 1]; 
-        const unsigned int groupStartID = d_mergedPresynapticUpdateGroupStartID1[lo - 1];
+        struct MergedPresynapticUpdateGroup2 *group = &d_mergedPresynapticUpdateGroup2[lo - 1]; 
+        const unsigned int groupStartID = d_mergedPresynapticUpdateGroupStartID2[lo - 1];
         const unsigned int lid = id - groupStartID;
          {
             const unsigned int spike = lid;
@@ -240,10 +384,10 @@ extern "C" __global__ void updatePresynapticKernel(float t)
         }
         
     }
-    // merged2
-    if(id >= 127040 && id < 131136) {
-        struct MergedPresynapticUpdateGroup2 *group = &d_mergedPresynapticUpdateGroup2[0]; 
-        const unsigned int lid = id - 127040;
+    // merged3
+    if(id >= 130112 && id < 134208) {
+        struct MergedPresynapticUpdateGroup3 *group = &d_mergedPresynapticUpdateGroup3[0]; 
+        const unsigned int lid = id - 130112;
         float linSyn = 0;
          {
             const unsigned int numSpikes = group->srcSpkCnt[0];
@@ -309,22 +453,22 @@ extern "C" __global__ void updatePresynapticKernel(float t)
             group->inSyn[lid] += linSyn;
         }
     }
-    // merged3
-    if(id >= 131136 && id < 259136) {
+    // merged4
+    if(id >= 134208 && id < 259136) {
         unsigned int lo = 0;
-        unsigned int hi = 6;
+        unsigned int hi = 5;
         while(lo < hi)
          {
             const unsigned int mid = (lo + hi) / 2;
-            if(id < d_mergedPresynapticUpdateGroupStartID3[mid]) {
+            if(id < d_mergedPresynapticUpdateGroupStartID4[mid]) {
                 hi = mid;
             }
             else {
                 lo = mid + 1;
             }
         }
-        struct MergedPresynapticUpdateGroup3 *group = &d_mergedPresynapticUpdateGroup3[lo - 1]; 
-        const unsigned int groupStartID = d_mergedPresynapticUpdateGroupStartID3[lo - 1];
+        struct MergedPresynapticUpdateGroup4 *group = &d_mergedPresynapticUpdateGroup4[lo - 1]; 
+        const unsigned int groupStartID = d_mergedPresynapticUpdateGroupStartID4[lo - 1];
         const unsigned int lid = id - groupStartID;
          {
             const unsigned int spike = lid;

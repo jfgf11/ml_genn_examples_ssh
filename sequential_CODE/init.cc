@@ -7,7 +7,8 @@ struct MergedNeuronInitGroup0
  {
     unsigned int* spkCnt;
     unsigned int* spk;
-    curandState* rng;
+    unsigned int* spkCntEvnt;
+    unsigned int* spkEvnt;
     scalar* input;
     unsigned int numNeurons;
     
@@ -25,8 +26,8 @@ struct MergedNeuronInitGroup1
 }
 ;
 __device__ __constant__ MergedNeuronInitGroup0 d_mergedNeuronInitGroup0[1];
-void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons) {
-    MergedNeuronInitGroup0 group = {spkCnt, spk, rng, input, numNeurons, };
+void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, unsigned int* spkCntEvnt, unsigned int* spkEvnt, scalar* input, unsigned int numNeurons) {
+    MergedNeuronInitGroup0 group = {spkCnt, spk, spkCntEvnt, spkEvnt, input, numNeurons, };
     CHECK_CUDA_ERRORS(cudaMemcpyToSymbolAsync(d_mergedNeuronInitGroup0, &group, sizeof(MergedNeuronInitGroup0), idx * sizeof(MergedNeuronInitGroup0)));
 }
 __device__ __constant__ MergedNeuronInitGroup1 d_mergedNeuronInitGroup1[13];
@@ -50,11 +51,14 @@ extern "C" __global__ void initializeKernel(unsigned long long deviceRNGSeed) {
         const unsigned int lid = id - 0;
         // only do this for existing neurons
         if(lid < group->numNeurons) {
-            curand_init(deviceRNGSeed, id, 0, &group->rng[lid]);
             if(lid == 0) {
                 group->spkCnt[0] = 0;
             }
+            if(lid == 0) {
+                group->spkCntEvnt[0] = 0;
+            }
             group->spk[lid] = 0;
+            group->spkEvnt[lid] = 0;
              {
                 scalar initVal;
                 initVal = (0.00000000000000000e+00f);
@@ -118,13 +122,6 @@ extern "C" __global__ void initializeKernel(unsigned long long deviceRNGSeed) {
 }
 void initialize() {
     unsigned long long deviceRNGSeed = 0;
-     {
-        std::random_device seedSource;
-        uint32_t *deviceRNGSeedWord = reinterpret_cast<uint32_t*>(&deviceRNGSeed);
-        for(int i = 0; i < 2; i++) {
-            deviceRNGSeedWord[i] = seedSource();
-        }
-    }
      {
         CHECK_CUDA_ERRORS(cudaEventRecord(initStart));
         const dim3 threads(64, 1);

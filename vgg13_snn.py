@@ -127,7 +127,9 @@ if __name__ == '__main__':
     print("TF evaluation:%f" % (perf_counter() - tf_eval_start_time))
 
     # Create, suitable converter to convert TF model to ML GeNN
-    converter = DataNorm(input_type='poisson', norm_data=[x_norm])
+    converter = DataNorm(input_type='spike', norm_data=[x_norm])
+    
+    #DataNorm(input_type='poisson', norm_data=[x_norm])
 
     #FewSpike(K=10, signed_input=True, norm_data=[x_norm]) 
 
@@ -138,7 +140,7 @@ if __name__ == '__main__':
         dt=1.0, batch_size=1, rng_seed=0, 
         kernel_profiling=True)
     
-    time = 2500
+    time = 5000
     mlg_eval_start_time = perf_counter()
     acc, spk_i, spk_t = mlg_model.evaluate([x_test], [y_test], time, save_samples=args.save_samples)
     print("MLG evaluation:%f" % (perf_counter() - mlg_eval_start_time))
