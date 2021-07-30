@@ -8,21 +8,33 @@ from time import perf_counter
 from sklearn.preprocessing import OneHotEncoder
 from tensorflow.keras import (models)
 from ml_genn.utils import parse_arguments, raster_plot
+from tensorflow.keras.utils import model_to_dot
 
-def resnetFunctionalIdentity(input_layer, filters, identity_cnn=False):
+
+
+def resnetFunctionalIdentity(input_layer, filters, identity_cnn=False, drop_out_layer = False):
   strides = [2, 1] if identity_cnn else [1, 1]
   KERNEL_SIZE = (3,3)
   W_INIT = 'he_normal'
-  x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[0], kernel_initializer=W_INIT, use_bias=False, activation='relu')(input_layer)
-  x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[1], kernel_initializer=W_INIT, use_bias=False, activation='relu')(x)
+  #regularizer = tf.keras.regularizers.l2(0.00001) #0.0001
+
+  x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[0], kernel_initializer=W_INIT, use_bias=False, activation='relu' )(input_layer)
+  x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[1], kernel_initializer=W_INIT, use_bias=False, activation='relu' )(x)
 
   res = tf.keras.layers.Conv2D(filters, kernel_size=(1,1), padding='same', strides=2, kernel_initializer=W_INIT, use_bias=False, activation='relu')(input_layer) if identity_cnn else input_layer
+  
+  # if final_layer:
+  #   res = tf.keras.layers.GlobalAveragePooling2D()(res)
+  #   x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
   x = tf.keras.layers.Add()([x, res])
-
+  if drop_out_layer:
+    x = tf.keras.layers.Dropout(0.1)(x)
   return x
 
 def resnet18(num_classes):
+  regularizer = tf.keras.regularizers.l2(0.0001) #0.0001
+
   input = tf.keras.layers.Input(shape=(32,32,3))
   x = tf.keras.layers.Conv2D(64, (7,7), padding='same', kernel_initializer='he_normal', activation='relu', use_bias=False)(input)
   x = tf.keras.layers.AveragePooling2D((3,3))(x)
@@ -33,11 +45,14 @@ def resnet18(num_classes):
   counter = -1
   for i in range(1, 7):
     counter += 1 if i%2==1 else 0
-    x = resnetFunctionalIdentity(x, 128*(2**counter), i%2)
-  
-  x = tf.keras.layers.GlobalAveragePooling2D()(x)
+    drop_out_layer = True if i > 5 else False
 
-  x = tf.keras.layers.Dense(num_classes, activation='softmax', use_bias='False')(x)
+    # final_layer = True if i == 6 else False
+    x = resnetFunctionalIdentity(x, 128*(2**counter), i%2, drop_out_layer)
+  
+  x = tf.keras.layers.Flatten()(x)
+
+  x = tf.keras.layers.Dense(num_classes, activation='softmax', use_bias=False)(x)
 
   model = tf.keras.Model(inputs=input, outputs=x, name='Resnet18')
 
@@ -72,18 +87,13 @@ if __name__ == '__main__':
     if x_train.shape[1] < 32 or x_train.shape[2] < 32:
         raise ValueError('input must be at least 32x32')
 
-
-    # Create, train and evaluate TensorFlow model
-    # Create L2 regularizer
-    #regularizer = tf.keras.regularizers.l2(0.00001)
-    #kernel_init = 'he_uniform'
-
     # Creating the model
     tf_model = resnet18(10)
     tf_model.build(input_shape = (None,32,32,3))
 
     if args.reuse_tf_model:
         tf_model = models.load_model('resnet_tf_model')
+        #SVG(model_to_dot(tf_model, show_shapes = True, expand_nested = True, dpi = 50).create(prog='dot', format='svg'))
     else:
 
         data_gen = tf.keras.preprocessing.image.ImageDataGenerator(horizontal_flip=True,
@@ -92,6 +102,8 @@ if __name__ == '__main__':
                                                            rotation_range=20,
                                                            zoom_range=0.2,
                                                            shear_range=0.1)
+        
+
         data_gen.fit(x_train)
 
         checkpoint_path = "training_1/cp.ckpt"
@@ -103,25 +115,26 @@ if __name__ == '__main__':
 
         tf_model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
         tf_model.summary()
-        steps_per_epoch = y_train.shape[0] // 128
-        tf_model.fit(data_gen.flow(x_train, y_train, batch_size=128),
+        #SVG(model_to_dot(tf_model, show_shapes = True, expand_nested = True, dpi = 50).create(prog='dot', format='svg'))
+
+        steps_per_epoch = y_train.shape[0] // 256
+        tf_model.fit(data_gen.flow(x_train, y_train, batch_size=256),
            validation_data=(x_test, y_test), 
-           epochs=2,
+           epochs=200,
            steps_per_epoch=steps_per_epoch,
-           batch_size=128,
+           batch_size=256,
            callbacks=[cp_callback])
         # The model weights (that are considered the best) are loaded into the model.
-        #tf_model.load_weights(checkpoint_path)
-        #models.save_model(tf_model, 'resnet_tf_model', save_format='h5')
+        tf_model.load_weights(checkpoint_path)
+        
+        models.save_model(tf_model, 'resnet_tf_model', save_format='h5')
 
     tf_eval_start_time = perf_counter()
     tf_model.evaluate(x_test, y_test)
     print("TF evaluation:%f" % (perf_counter() - tf_eval_start_time))
 
     # Create, suitable converter to convert TF model to ML GeNN
-    converter = Simple(input_type='poisson')
-
-    #FewSpike(K=10, signed_input=True, norm_data=[x_norm]) 
+    converter = args.build_converter(x_norm, K=10, norm_time=2500)
 
 
     # Convert and compile ML GeNN model

@@ -168,14 +168,6 @@ EXPORT_VAR unsigned int* glbSpkCntconv2d_input_nrn;
 EXPORT_VAR unsigned int* d_glbSpkCntconv2d_input_nrn;
 EXPORT_VAR unsigned int* glbSpkconv2d_input_nrn;
 EXPORT_VAR unsigned int* d_glbSpkconv2d_input_nrn;
-#define spikeEventCount_conv2d_input_nrn glbSpkCntEvntconv2d_input_nrn[0]
-#define spikeEvent_conv2d_input_nrn glbSpkEvntconv2d_input_nrn
-
-
-EXPORT_VAR unsigned int* glbSpkCntEvntconv2d_input_nrn;
-EXPORT_VAR unsigned int* d_glbSpkCntEvntconv2d_input_nrn;
-EXPORT_VAR unsigned int* glbSpkEvntconv2d_input_nrn;
-EXPORT_VAR unsigned int* d_glbSpkEvntconv2d_input_nrn;
 EXPORT_VAR scalar* inputconv2d_input_nrn;
 EXPORT_VAR scalar* d_inputconv2d_input_nrn;
 #define spikeCount_conv2d_nrn glbSpkCntconv2d_nrn[0]
@@ -467,12 +459,6 @@ EXPORT_FUNC void pushconv2d_input_nrnCurrentSpikesToDevice(bool uninitialisedOnl
 EXPORT_FUNC void pullconv2d_input_nrnCurrentSpikesFromDevice();
 EXPORT_FUNC unsigned int* getconv2d_input_nrnCurrentSpikes(unsigned int batch = 0); 
 EXPORT_FUNC unsigned int& getconv2d_input_nrnCurrentSpikeCount(unsigned int batch = 0); 
-EXPORT_FUNC void pushconv2d_input_nrnSpikeEventsToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullconv2d_input_nrnSpikeEventsFromDevice();
-EXPORT_FUNC void pushconv2d_input_nrnCurrentSpikeEventsToDevice(bool uninitialisedOnly = false);
-EXPORT_FUNC void pullconv2d_input_nrnCurrentSpikeEventsFromDevice();
-EXPORT_FUNC unsigned int* getconv2d_input_nrnCurrentSpikeEvents(unsigned int batch = 0); 
-EXPORT_FUNC unsigned int& getconv2d_input_nrnCurrentSpikeEventCount(unsigned int batch = 0); 
 EXPORT_FUNC void pushinputconv2d_input_nrnToDevice(bool uninitialisedOnly = false);
 EXPORT_FUNC void pullinputconv2d_input_nrnFromDevice();
 EXPORT_FUNC void pushCurrentinputconv2d_input_nrnToDevice(bool uninitialisedOnly = false);

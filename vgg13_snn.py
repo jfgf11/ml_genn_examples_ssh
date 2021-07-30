@@ -127,7 +127,7 @@ if __name__ == '__main__':
     print("TF evaluation:%f" % (perf_counter() - tf_eval_start_time))
 
     # Create, suitable converter to convert TF model to ML GeNN
-    converter = DataNorm(input_type='spike', norm_data=[x_norm])
+    converter = args.build_converter([x_norm], K=10, norm_time=2500)
     
     #DataNorm(input_type='poisson', norm_data=[x_norm])
 
