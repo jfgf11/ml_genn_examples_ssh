@@ -167,18 +167,17 @@ EXPORT_VAR curandState* d_rnginput_1_nrn;
 // copying merged group structures to device
 // ------------------------------------------------------------------------
 EXPORT_FUNC void pushMergedNeuronInitGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons);
-EXPORT_FUNC void pushMergedNeuronInitGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, unsigned int numNeurons);
-EXPORT_FUNC void pushMergedNeuronInitGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, float* inSynInSyn2, unsigned int numNeurons);
-EXPORT_FUNC void pushMergedNeuronInitGroup3ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, unsigned int numNeurons);
-EXPORT_FUNC void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, unsigned int numNeurons, scalar Vthr);
-EXPORT_FUNC void pushMergedNeuronUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, float* inSynInSyn2, unsigned int numNeurons, scalar Vthr);
-EXPORT_FUNC void pushMergedNeuronUpdateGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons);
-EXPORT_FUNC void pushMergedNeuronUpdateGroup3ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, unsigned int numNeurons, scalar Vthr);
-EXPORT_FUNC void pushMergedPresynapticUpdateGroup0ToDevice(unsigned int idx, scalar* kernelg, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar conv_sw, unsigned int kernelSize3, unsigned int kernelSize1, unsigned int kernelSize0, scalar conv_oc, scalar conv_ow, scalar conv_oh, scalar conv_padw, scalar conv_padh, unsigned int rowStride, scalar conv_sh, scalar conv_kw, scalar conv_kh, unsigned int numTrgNeurons, unsigned int numSrcNeurons);
+EXPORT_FUNC void pushMergedNeuronInitGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, unsigned int numNeurons);
+EXPORT_FUNC void pushMergedNeuronInitGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, unsigned int numNeurons);
+EXPORT_FUNC void pushMergedNeuronUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, curandState* rng, scalar* input, unsigned int numNeurons);
+EXPORT_FUNC void pushMergedNeuronUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, unsigned int numNeurons, scalar Vthr);
+EXPORT_FUNC void pushMergedNeuronUpdateGroup2ToDevice(unsigned int idx, unsigned int* spkCnt, unsigned int* spk, scalar* Vmem, unsigned int* nSpk, float* inSynInSyn0, float* inSynInSyn1, unsigned int numNeurons, scalar Vthr);
+EXPORT_FUNC void pushMergedPresynapticUpdateGroup0ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* kernelg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons);
 EXPORT_FUNC void pushMergedPresynapticUpdate0kernelgToDevice(unsigned int idx, scalar* value);
 EXPORT_FUNC void pushMergedPresynapticUpdateGroup1ToDevice(unsigned int idx, scalar* kernelg, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar conv_padw, unsigned int kernelSize3, unsigned int kernelSize2, unsigned int kernelSize1, unsigned int kernelSize0, scalar conv_oc, scalar conv_ow, scalar conv_oh, scalar conv_ic, scalar conv_iw, unsigned int rowStride, scalar conv_padh, scalar conv_sw, scalar conv_sh, scalar conv_kw, scalar conv_kh, unsigned int numTrgNeurons, unsigned int numSrcNeurons);
 EXPORT_FUNC void pushMergedPresynapticUpdate1kernelgToDevice(unsigned int idx, scalar* value);
-EXPORT_FUNC void pushMergedPresynapticUpdateGroup2ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* g, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons);
+EXPORT_FUNC void pushMergedPresynapticUpdateGroup2ToDevice(unsigned int idx, float* inSyn, unsigned int* srcSpkCnt, unsigned int* srcSpk, scalar* weightsg, unsigned int rowStride, unsigned int numSrcNeurons, unsigned int numTrgNeurons);
+EXPORT_FUNC void pushMergedPresynapticUpdate2weightsgToDevice(unsigned int idx, scalar* value);
 EXPORT_FUNC void pushMergedNeuronSpikeQueueUpdateGroup0ToDevice(unsigned int idx, unsigned int* spkCnt);
 EXPORT_FUNC void pushMergedNeuronSpikeQueueUpdateGroup1ToDevice(unsigned int idx, unsigned int* spkCnt);
 }  // extern "C"

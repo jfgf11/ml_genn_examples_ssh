@@ -11,25 +11,19 @@ from ml_genn.utils import parse_arguments, raster_plot
 from tensorflow.keras.utils import model_to_dot
 
 
-
-def resnetFunctionalIdentity(input_layer, filters, identity_cnn=False, drop_out_layer = False):
+def resnetFunctionalIdentity(input_layer, filters, identity_cnn=False, final_layer = False, drop_out_layer = False):
   strides = [2, 1] if identity_cnn else [1, 1]
   KERNEL_SIZE = (3,3)
   W_INIT = 'he_normal'
   #regularizer = tf.keras.regularizers.l2(0.00001) #0.0001
-
+  input_layer = tf.keras.layers.Conv2D(filters, kernel_size=(1,1), padding='same', kernel_initializer=W_INIT, use_bias=False, activation='relu')(input_layer)
   x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[0], kernel_initializer=W_INIT, use_bias=False, activation='relu' )(input_layer)
   x = tf.keras.layers.Conv2D(filters, kernel_size=KERNEL_SIZE, padding='same', strides=strides[1], kernel_initializer=W_INIT, use_bias=False, activation='relu' )(x)
 
   res = tf.keras.layers.Conv2D(filters, kernel_size=(1,1), padding='same', strides=2, kernel_initializer=W_INIT, use_bias=False, activation='relu')(input_layer) if identity_cnn else input_layer
-  
-  # if final_layer:
-  #   res = tf.keras.layers.GlobalAveragePooling2D()(res)
-  #   x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
   x = tf.keras.layers.Add()([x, res])
-  if drop_out_layer:
-    x = tf.keras.layers.Dropout(0.1)(x)
+  x = tf.keras.layers.Dropout(0.05)(x)
   return x
 
 def resnet18(num_classes):
@@ -47,11 +41,10 @@ def resnet18(num_classes):
     counter += 1 if i%2==1 else 0
     drop_out_layer = True if i > 5 else False
 
-    # final_layer = True if i == 6 else False
-    x = resnetFunctionalIdentity(x, 128*(2**counter), i%2, drop_out_layer)
+    final_layer = True if i == 6 else False
+    x = resnetFunctionalIdentity(x, 128*(2**counter), i%2, final_layer, drop_out_layer)
   
-  x = tf.keras.layers.Flatten()(x)
-
+  x = tf.keras.layers.GlobalAveragePooling2D()(x)
   x = tf.keras.layers.Dense(num_classes, activation='softmax', use_bias=False)(x)
 
   model = tf.keras.Model(inputs=input, outputs=x, name='Resnet18')
@@ -117,13 +110,36 @@ if __name__ == '__main__':
         tf_model.summary()
         #SVG(model_to_dot(tf_model, show_shapes = True, expand_nested = True, dpi = 50).create(prog='dot', format='svg'))
 
+        def lr_schedule(epoch):
+
+          lr = 1e-3
+          if epoch > 180:
+            lr *= 0.5e-3
+          elif epoch > 160:
+            lr *= 1e-3
+          elif epoch > 120:
+            lr *= 1e-2
+          elif epoch > 80:
+            lr *= 1e-1
+          print('Learning rate: ', lr)
+          return lr
+
+        lr_scheduler = tf.keras.callbacks.LearningRateScheduler(lr_schedule)
+
+        lr_reducer = tf.keras.callbacks.ReduceLROnPlateau(factor = np.sqrt(0.1),
+                                                          cooldown=0,
+                                                          patience=5,
+                                                          min_lr=0.5e-6)
+
+        callbacks = [lr_reducer, lr_scheduler, cp_callback]
+
         steps_per_epoch = y_train.shape[0] // 256
         tf_model.fit(data_gen.flow(x_train, y_train, batch_size=256),
            validation_data=(x_test, y_test), 
            epochs=200,
            steps_per_epoch=steps_per_epoch,
            batch_size=256,
-           callbacks=[cp_callback])
+           callbacks=callbacks)
         # The model weights (that are considered the best) are loaded into the model.
         tf_model.load_weights(checkpoint_path)
         
@@ -142,7 +158,9 @@ if __name__ == '__main__':
         tf_model, converter=converter, connectivity_type='procedural',
         dt=1.0, batch_size=1, rng_seed=0, 
         kernel_profiling=True)
-    
+
+
+
     time = 2500
     mlg_eval_start_time = perf_counter()
     acc, spk_i, spk_t = mlg_model.evaluate([x_test], [y_test], time, save_samples=args.save_samples)
